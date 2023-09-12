@@ -1,0 +1,47 @@
+{
+    "stack1": {
+      "labware": "nest_96_wellplate_2ml_deep",
+      "count": 3,
+      "depleted": false,
+      "has_lid": true
+    },
+    "stack2": {
+      "labware": "nest_96_wellplate_2ml_deep",
+      "count": 3,
+      "depleted": false,
+      "has_lid": true
+    },
+    "stack3": {
+      "labware": "nest_96_wellplate_2ml_deep",
+      "count": 3,
+      "depleted": false,
+      "has_lid": true
+    },
+    "stack4": {
+      "labware": "opentrons_96_tiprack_20ul",
+      "count": 3,
+      "depleted": false,
+      "has_lid": true
+    },
+    "stack5": {
+      "labware": "nest_96_wellplate_2ml_deep",
+      "count": 3,
+      "depleted": false,
+      "has_lid": true
+    },
+    "lidnest1": {
+      "labware": "nest_96_wellplate_2ml_deep",
+      "occupied": false,
+      "is_lid": true
+    },
+    "lidnest2": {
+      "labware": "nest_96_wellplate_2ml_deep",
+      "occupied": false,
+      "is_lid": true
+    },
+    "lidnest3": {
+      "labware": "nest_96_wellplate_2ml_deep",
+      "occupied": false,
+      "is_lid": true
+    }
+  }

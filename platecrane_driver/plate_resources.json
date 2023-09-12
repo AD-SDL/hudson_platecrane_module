@@ -1,0 +1,44 @@
+{
+    "96_well":{
+        "plate_above_height": 800,
+        "plate_pick_steps_module": 1500,
+        "plate_pick_steps_stack": 2400,
+        "plate_lid_steps": 1300,
+        "lid_height": 1400
+    },
+
+    "96_deep_well":{
+        "plate_above_height":5000, 
+        "plate_pick_steps_module": 2950,
+        "plate_pick_steps_stack": 7750,
+        "plate_lid_steps": 0,
+        "lid_height": 0
+    },
+
+    "pcr_plate":{
+        "plate_above_height": 5000,
+        "plate_pick_steps_module": 5700,
+        "plate_pick_steps_stack": 10800,
+        "plate_lid_steps": 10000,
+        "lid_height": 1400
+
+    },
+
+    "tip_box_lid_on":{
+        "plate_above_height":5000, 
+        "plate_pick_steps_module": 2300,
+        "plate_pick_steps_stack": 7100,
+        "plate_lid_steps": 6200,
+        "lid_height": 400
+
+    },
+    "tip_box_lid_off":{
+        "plate_above_height":5000, 
+        "plate_pick_steps_module": 3100,
+        "plate_pick_steps_stack": 7900,
+        "plate_lid_steps": 0,
+        "lid_height": 0
+
+    }
+    
+}
