@@ -90,9 +90,6 @@ def do_action(
             return response
     if state == "BUSY":
       return response
-   # while state != "IDLE":
-            pass #self.get_logger().warn("Waiting for SCICLOPS to switch IDLE state...")
-            sleep(0.5)
 
     state  = "BUSY"
 
@@ -160,6 +157,10 @@ def do_action(
 
 if __name__ == "__main__":
     import uvicorn
-    print("asdfsaf")
-    uvicorn.run("a4s_sealer_REST:app", host=local_ip, port=local_port, reload=True, ws_max_size=100000000000000000000000000000000000000)
+    parser = ArgumentParser()
+    parser.add_argument("--alias", type=str, help="Name of the Node")
+    parser.add_argument("--host", type=str, help="Host for rest")
+    parser.add_argument("--port", type=int, help="port value")
+    args = parser.parse_args()
+    uvicorn.run("sciclops_rest_client:app", host=args.host, port=args.port, reload=False, ws_max_size=100000000000000000000000000000000000000)
 
