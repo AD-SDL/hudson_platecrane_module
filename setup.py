@@ -7,11 +7,7 @@ setup(
     name='platecrane_driver',
     version='0.0.2',
     packages=find_packages(),
-    data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
-    ],
+    data_files=[],
     install_requires=install_requires,
     zip_safe=True,
     python_requires=">=3.8",
