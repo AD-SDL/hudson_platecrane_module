@@ -2,7 +2,10 @@ from __future__ import annotations
 
 
 class SerialError(Exception):
-    """Error during serial communication. Corresponds to the responses E0 to E5."""
+    """
+    Error during serial communication.
+    Corresponds to the responses E0 to E5.
+    """
 
     @staticmethod
     def from_response(response: str) -> SerialError:
@@ -21,7 +24,9 @@ class SerialError(Exception):
 
 class RelayError(SerialError):
     def __init__(self):
-        super().__init__("Undefined timer, counter, data memory. Check if requested unit is valid.")
+        super().__init__(
+            "Undefined timer, counter, data memory. Check if requested unit is valid."
+        )
 
 
 class CommandError(SerialError):
@@ -59,7 +64,9 @@ class ErrorResponse(Exception):
 
     @staticmethod
     def from_error_code(error_code: int) -> ErrorResponse:
-        error_code = int(hex(error_code)[-2:], base=16)  # convert to hex, take two last digits, parse as hex
+        error_code = int(
+            hex(error_code)[-2:], base=16
+        )  # convert to hex, take two last digits, parse as hex
         messages = {
             0x01: "General time out; Operation took longer than 15 Minutes",
             0x02: "General time out; Time out after previous time out; Operation longer than 5 Minutes",
