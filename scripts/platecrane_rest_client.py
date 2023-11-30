@@ -8,13 +8,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-from platecrane_driver.sciclops_driver import SCICLOPS
+from platecrane_driver.platecrane_driver import PlateCrane
 
-global sciclops, state
+global platecrane, state
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global sciclops, state
+    global platecrane, state
     """Initial run function for the app, parses the workcell argument
         Parameters
         ----------
@@ -26,14 +26,14 @@ async def lifespan(app: FastAPI):
         None"""
 
     try:
-        sciclops = SCICLOPS()
+        platecrane = PlateCrane()
 
     except Exception as error_msg:
-        state = "SCICLOPS CONNECTION ERROR"
-        print("------- SCICLOPS Error message: " + str(error_msg) + (" -------"))
+        state = "PLATECRANE CONNECTION ERROR"
+        print("------- PlateCrane Error message: " + str(error_msg) + (" -------"))
 
     else:
-        print("SCICLOPS online")
+        print("PLATECRANE online")
     state = "IDLE"
     yield
     pass
@@ -46,7 +46,7 @@ app = FastAPI(
 
 @app.get("/state")
 def get_state():
-    global sealer, state
+    global platecrane, state
     return JSONResponse(content={"State": state})
 
 
@@ -58,13 +58,13 @@ async def description():
 
 @app.get("/resources")
 async def resources():
-    global sealer
-    return JSONResponse(content={"State": sealer.get_status()})
+    global platecrane
+    return JSONResponse(content={"State": platecrane.get_status()})
 
 
 @app.post("/action")
 def do_action(action_handle: str, action_vars):
-    global state, sciclops
+    global state, platecrane
     response = {"action_response": "", "action_msg": "", "action_log": ""}
     if state == "SCICLOPS CONNECTION ERROR":
         message = "Connection error, cannot accept a job!"
@@ -78,7 +78,7 @@ def do_action(action_handle: str, action_vars):
 
     if action_handle == "status":
         try:
-            sciclops.get_status()
+            platecrane.get_status()
         except Exception as err:
             response["action_response"] = -1
             response["action_msg"] = "Get status failed. Error:" + err
@@ -91,7 +91,7 @@ def do_action(action_handle: str, action_vars):
 
     elif action_handle == "home":
         try:
-            sciclops.home()
+            platecrane.home()
         except Exception as err:
             response["action_response"] = -1
             response["action_msg"] = "Homing failed. Error:" + err
@@ -111,7 +111,7 @@ def do_action(action_handle: str, action_vars):
         trash = vars.get("trash", False)
 
         try:
-            sciclops.get_plate(pos, lid, trash)
+            platecrane.get_plate(pos, lid, trash)
         except Exception as err:
             response["action_response"] = -1
             response["action_msg"] = "Get plate failed. Error:" + err
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=2002)
     args = parser.parse_args()
     uvicorn.run(
-        "sciclops_rest_client:app",
+        "platecrane_rest_client:app",
         host=args.host,
         port=args.port,
         reload=False,
