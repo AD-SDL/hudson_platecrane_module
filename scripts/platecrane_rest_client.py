@@ -10,6 +10,12 @@ from fastapi.responses import JSONResponse
 
 from platecrane_driver.platecrane_driver import PlateCrane
 
+from wei.core.data_classes import (
+    ModuleStatus,
+    StepResponse,
+    StepStatus,
+)
+
 global platecrane, state
 
 @asynccontextmanager
@@ -34,7 +40,7 @@ async def lifespan(app: FastAPI):
 
     else:
         print("PLATECRANE online")
-    state = "IDLE"
+    state = ModuleStatus.IDLE
     yield
     pass
 
@@ -65,69 +71,93 @@ async def resources():
 @app.post("/action")
 def do_action(action_handle: str, action_vars):
     global state, platecrane
-    response = {"action_response": "", "action_msg": "", "action_log": ""}
-    if state == "SCICLOPS CONNECTION ERROR":
+    # response = {"action_response": "", "action_msg": "", "action_log": ""}
+    response = StepResponse()
+    if state == "PLATECRANE CONNECTION ERROR":
         message = "Connection error, cannot accept a job!"
-        response["action_response"] = -1
-        response["action_msg"] = message
+        response.action_response = StepStatus.FAILED
+        response.action_log = message
         return response
-    if state == "BUSY":
+    if state == ModuleStatus.ERROR:
         return response
+    
+    action_args = json.loads(action_vars)
 
-    state = "BUSY"
+    state = ModuleStatus.BUSY
 
-    if action_handle == "status":
-        try:
-            platecrane.get_status()
-        except Exception as err:
-            response["action_response"] = -1
-            response["action_msg"] = "Get status failed. Error:" + err
-        else:
-            response["action_response"] = 0
-            response["action_msg"] = "Get status successfully completed"
+    source = action_args.get('source')
+    print("Source location: " + str(source))
+    target = action_args.get('target')
+    print("Target location: "+ str(target))
+    plate_type = action_args.get('plate_type', "96_well")
+    print("Plate type: "+ str(target))
 
-        state = "IDLE"
-        return response
+    if action_handle == 'transfer':
+        print("Starting the transfer request")
 
-    elif action_handle == "home":
-        try:
-            platecrane.home()
-        except Exception as err:
-            response["action_response"] = -1
-            response["action_msg"] = "Homing failed. Error:" + err
-        else:
-            response["action_response"] = 0
-            response["action_msg"] = "Homing successfully completed"
+        source_type = action_args.get('source_type', None)
+        print("Source Type: " + str(source_type))
 
-        state = "IDLE"
-        return response
+        target_type = action_args.get('target_type', None)
+        print("Target Type: " + str(target_type))
 
-    elif action_handle == "get_plate":
-        vars = json.loads(action_vars)
-        print(vars)
+        if not source_type or not target_type:
+            print("Please provide source and target transfer types!")
+            state = ModuleStatus.ERROR
 
-        pos = vars.get("pos")
-        lid = vars.get("lid", False)
-        trash = vars.get("trash", False)
+        height_offset = action_args.get('height_offset', 0)
+        print("Height Offset: " + str(height_offset))
 
         try:
-            platecrane.get_plate(pos, lid, trash)
+            platecrane.transfer(source, target, source_type = source_type.lower(), target_type = target_type.lower(), height_offset = int(height_offset), plate_type = plate_type)
         except Exception as err:
-            response["action_response"] = -1
-            response["action_msg"] = "Get plate failed. Error:" + err
+            response.action_response = StepStatus.FAILED
+            response.action_log = "Transfer failed. Error:" + str(err)
+            print(str(err))
+            state = ModuleStatus.ERROR
         else:
-            response["action_response"] = 0
-            response["action_msg"] = "Get plate successfully completed"
+            response.action_response = StepStatus.SUCCEEDED
+            response.action_msg = "Transfer successfully completed"
+            state = ModuleStatus.IDLE
+        finally:
+            print('Finished Action: ' + action_handle.upper())
+            return response
+    elif action_handle == "remove_lid":
 
-        state = "IDLE"
-
-        return response
-
+        try:
+            platecrane.remove_lid(source = source, target = target, plate_type = plate_type)
+        except Exception as err:
+            response.action_response = StepStatus.FAILED
+            response.action_log = "Remove lid failed. Error:" + str(err)
+            print(str(err))
+            state = ModuleStatus.ERROR
+        else:
+            response.action_response = StepStatus.SUCCEEDED
+            response.action_msg = "Remove lid successfully completed"
+            state = ModuleStatus.IDLE
+        finally:
+            print('Finished Action: ' + action_handle.upper())
+            return response
+    elif action_handle == "replace_lid":
+        try:
+            platecrane.replace_lid(source = source, target = target, plate_type = plate_type)
+        except Exception as err:
+            response.action_response = StepStatus.FAILED
+            response.action_log = "Replace lid failed. Error:" + str(err)
+            print(str(err))
+            state = ModuleStatus.ERROR
+        else:
+            response.action_response = StepStatus.SUCCEEDED
+            response.action_msg = "Replace lid  successfully completed"
+            state = ModuleStatus.IDLE
+        finally:
+            print('Finished Action: ' + action_handle.upper())
+            return response
     else:
         msg = "UNKNOWN ACTION REQUEST! Available actions: status, home, get_plate"
-        response["action_response"] = -1
-        response["action_msg"] = msg
-        state = "ERROR"
+        response.action_response = StepStatus.FAILED
+        response.action_log = msg
+        state = ModuleStatus.ERROR
         return response
 
 
