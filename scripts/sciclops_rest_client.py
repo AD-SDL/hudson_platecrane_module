@@ -7,6 +7,16 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from pathlib import Path
+from wei.core.data_classes import (
+    ModuleAbout,
+    ModuleAction,
+    ModuleActionArg,
+    ModuleStatus,
+    StepResponse,
+    StepStatus,
+)
+from wei.helpers import extract_version
 
 from platecrane_driver.sciclops_driver import SCICLOPS
 
@@ -60,6 +70,54 @@ async def description():
 async def resources():
     global sealer
     return JSONResponse(content={"State": sealer.get_status()})
+
+
+@app.get("/about")
+async def about() -> JSONResponse:
+    """Returns a description of the actions and resources the module supports"""
+    global state
+    about = ModuleAbout(
+        name="Sciclops Robotic Arm",
+        description="Sciclops is a robotic arm module that grabs a plate from a specific tower location.",
+        interface="wei_rest_node",
+        version=extract_version(Path(__file__).parent.parent / "pyproject.toml"),
+        actions=[
+            ModuleAction(
+                name="get_plate",
+                description="This action gets a plate from a specified workcell location.",
+                args=[
+                    ModuleActionArg(
+                        name="pos",
+                        description="The workcell location to grab the plate from",
+                        type="str",
+                        required=True,
+                    ), 
+                    ModuleActionArg(
+                        name="lid", 
+                        description="The lid of the plate", 
+                        type="str", 
+                        required=False
+                    ), 
+                    ModuleActionArg(
+                        name="trash",
+                        description="Move plate to trash", 
+                        type="str",
+                        required=False
+                    )                    
+                ],
+            ), 
+            ModuleAction(
+                name="status",
+                description="This action retrieves the current status information for the sciclops as extra information."
+            ), 
+            ModuleAction(
+                name="home", 
+                description="Resets sclicops robot to default home position."
+            )
+        ],
+        resource_pools=[],
+    )
+    return JSONResponse(content=about.model_dump(mode="json"))
 
 
 @app.post("/action")
