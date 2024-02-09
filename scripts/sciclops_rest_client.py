@@ -126,7 +126,7 @@ def do_action(action_handle: str, action_vars):
     response = {"action_response": "", "action_msg": "", "action_log": ""}
     if state == "SCICLOPS CONNECTION ERROR":
         message = "Connection error, cannot accept a job!"
-        response["action_response"] = -1
+        response["action_response"] = "failed"
         response["action_msg"] = message
         return response
     if state == "BUSY":
@@ -138,10 +138,10 @@ def do_action(action_handle: str, action_vars):
         try:
             sciclops.get_status()
         except Exception as err:
-            response["action_response"] = -1
+            response["action_response"] = "failed"
             response["action_msg"] = "Get status failed. Error:" + err
         else:
-            response["action_response"] = 0
+            response["action_response"] = "succeeded"
             response["action_msg"] = "Get status successfully completed"
 
         state = "IDLE"
@@ -151,10 +151,10 @@ def do_action(action_handle: str, action_vars):
         try:
             sciclops.home()
         except Exception as err:
-            response["action_response"] = -1
+            response["action_response"] = "failed"
             response["action_msg"] = "Homing failed. Error:" + err
         else:
-            response["action_response"] = 0
+            response["action_response"] = "succeeded"
             response["action_msg"] = "Homing successfully completed"
 
         state = "IDLE"
@@ -171,10 +171,10 @@ def do_action(action_handle: str, action_vars):
         try:
             sciclops.get_plate(pos, lid, trash)
         except Exception as err:
-            response["action_response"] = -1
+            response["action_response"] = "failed"
             response["action_msg"] = "Get plate failed. Error:" + err
         else:
-            response["action_response"] = 0
+            response["action_response"] = "succeeded"
             response["action_msg"] = "Get plate successfully completed"
 
         state = "IDLE"
@@ -183,7 +183,7 @@ def do_action(action_handle: str, action_vars):
 
     else:
         msg = "UNKNOWN ACTION REQUEST! Available actions: status, home, get_plate"
-        response["action_response"] = -1
+        response["action_response"] = "failed"
         response["action_msg"] = msg
         state = "ERROR"
         return response
