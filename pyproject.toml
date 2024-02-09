@@ -14,6 +14,7 @@ dependencies = [
     "fastapi>=0.103",
     "uvicorn>=0.14.0",
     "pyusb",
+    "libusb",
     "pyserial",
     "ad_sdl.wei",
     "pytest"

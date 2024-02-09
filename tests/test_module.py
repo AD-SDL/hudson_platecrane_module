@@ -63,13 +63,6 @@ class TestSciclopsModule(TestWEI_Base):
             blocking=True,
         )
         assert result["status"] == WorkflowStatus.COMPLETED
-        output_path = Path("~/.wei/temp/test_image.jpg").expanduser()
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        exp.get_file(
-            input_filepath=result["hist"]["Take Picture"]["action_msg"],
-            output_filepath=output_path,
-        )
-        assert Path("~/.wei/temp/test_image.jpg").expanduser().exists()
 
     def test_hudson_platecrane_about(self):
         """Tests that the hudson_platecrane module's /about works"""

@@ -17,8 +17,6 @@ flowdef:
   - name: Home Robot
     module: sciclops
     action: home
-    args: []
   - name: Check Status
     module: sciclops
     action: status
-    args: []

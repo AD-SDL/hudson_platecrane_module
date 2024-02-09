@@ -153,7 +153,7 @@ def do_action(action_handle: str, action_vars):
             sciclops.get_status()
         except Exception as err:
             response.action_response = StepStatus.FAILED
-            response.action_log = "Get status failed. Error:" + err
+            response.action_log = f"Get status failed. Error: {str(err)}"
         else:
             response.action_response = StepStatus.SUCCEEDED
             response.action_log = "Get status successfully completed"
@@ -166,7 +166,7 @@ def do_action(action_handle: str, action_vars):
             sciclops.home()
         except Exception as err:
             response.action_response = StepStatus.FAILED
-            response.action_log = "Homing failed. Error:" + err
+            response.action_log = f"Homing failed. Error: {str(err)}"
         else:
             response.action_response = StepStatus.SUCCEEDED
             response.action_log = "Homing successfully completed"
@@ -186,7 +186,7 @@ def do_action(action_handle: str, action_vars):
             sciclops.get_plate(pos, lid, trash)
         except Exception as err:
             response.action_response = StepStatus.FAILED
-            response.action_log = "Get plate failed. Error:" + err
+            response.action_log = f"Get plate failed. Error: {str(err)}"
         else:
             response.action_response = StepStatus.SUCCEEDED
             response.action_log = "Get plate successfully completed"

@@ -8,6 +8,8 @@ LABEL org.opencontainers.image.licenses=MIT
 # Module specific logic goes below here #
 #########################################
 
+RUN apt update && apt install -y libusb-1.0-0-dev && rm -rf /var/lib/apt/lists/*
+
 RUN mkdir -p hudson_platecrane_module
 
 COPY ./platecrane_driver hudson_platecrane_module/platecrane_driver
