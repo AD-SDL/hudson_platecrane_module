@@ -71,7 +71,6 @@ async def resources():
 @app.post("/action")
 def do_action(action_handle: str, action_vars):
     global state, platecrane
-    # response = {"action_response": "", "action_msg": "", "action_log": ""}
     response = StepResponse()
     if state == "PLATECRANE CONNECTION ERROR":
         message = "Connection error, cannot accept a job!"
@@ -80,7 +79,7 @@ def do_action(action_handle: str, action_vars):
         return response
     if state == ModuleStatus.ERROR:
         return response
-    
+
     action_args = json.loads(action_vars)
 
     state = ModuleStatus.BUSY
@@ -119,9 +118,8 @@ def do_action(action_handle: str, action_vars):
             response.action_response = StepStatus.SUCCEEDED
             response.action_msg = "Transfer successfully completed"
             state = ModuleStatus.IDLE
-        finally:
-            print('Finished Action: ' + action_handle.upper())
-            return response
+        print('Finished Action: ' + action_handle.upper())
+        return response
     elif action_handle == "remove_lid":
 
         try:
@@ -135,9 +133,8 @@ def do_action(action_handle: str, action_vars):
             response.action_response = StepStatus.SUCCEEDED
             response.action_msg = "Remove lid successfully completed"
             state = ModuleStatus.IDLE
-        finally:
-            print('Finished Action: ' + action_handle.upper())
-            return response
+        print('Finished Action: ' + action_handle.upper())
+        return response
     elif action_handle == "replace_lid":
         try:
             platecrane.replace_lid(source = source, target = target, plate_type = plate_type)
@@ -150,9 +147,8 @@ def do_action(action_handle: str, action_vars):
             response.action_response = StepStatus.SUCCEEDED
             response.action_msg = "Replace lid  successfully completed"
             state = ModuleStatus.IDLE
-        finally:
-            print('Finished Action: ' + action_handle.upper())
-            return response
+        print('Finished Action: ' + action_handle.upper())
+        return response
     else:
         msg = "UNKNOWN ACTION REQUEST! Available actions: status, home, get_plate"
         response.action_response = StepStatus.FAILED
@@ -169,7 +165,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=2002)
     args = parser.parse_args()
     uvicorn.run(
-        "platecrane_rest_client:app",
+        "platecrane_rest_node:app",
         host=args.host,
         port=args.port,
         reload=False,

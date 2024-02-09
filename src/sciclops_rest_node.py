@@ -24,16 +24,16 @@ global sciclops, state
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global sciclops, state
-    """Initial run function for the app, parses the workcell argument
-        Parameters
-        ----------
-        app : FastApi
-           The REST API app being initialized
+    """Initial run function for the app, initializes the state
+    Parameters
+    ----------
+    app : FastApi
+       The REST API app being initialized
 
-        Returns
-        -------
-        None"""
+    Returns
+    -------
+    None"""
+    global sciclops, state
 
     try:
         sciclops = SCICLOPS()
@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
 
     else:
         print("SCICLOPS online")
-    state = "IDLE"
+    state = ModuleStatus.IDLE
     yield
     pass
 
@@ -56,18 +56,14 @@ app = FastAPI(
 
 @app.get("/state")
 def get_state():
+    """Returns the current state of the module"""
     global sealer, state
-    return JSONResponse(content={"State": state})
-
-
-@app.get("/description")
-async def description():
-    global state
     return JSONResponse(content={"State": state})
 
 
 @app.get("/resources")
 async def resources():
+    """Returns the current resources available to the module"""
     global sealer
     return JSONResponse(content={"State": sealer.get_status()})
 
@@ -91,28 +87,30 @@ async def about() -> JSONResponse:
                         description="The workcell location to grab the plate from",
                         type="str",
                         required=True,
-                    ), 
+                    ),
                     ModuleActionArg(
-                        name="lid", 
-                        description="The lid of the plate", 
-                        type="str", 
+                        name="lid",
+                        description="Removes the lid from the plate at position `pos` if True. Default is False.",
+                        type="bool",
                         required=False
-                    ), 
+                    ),
                     ModuleActionArg(
                         name="trash",
-                        description="Move plate to trash", 
-                        type="str",
+                        description="Throws the lid in the trash if True. Default is False.",
+                        type="bool",
                         required=False
-                    )                    
+                    )
                 ],
-            ), 
+            ),
             ModuleAction(
                 name="status",
-                description="This action retrieves the current status information for the sciclops as extra information."
-            ), 
+                description="This action checks the status information of the sciclops and fails if there's a problem.",
+                args=[],
+            ),
             ModuleAction(
-                name="home", 
-                description="Resets sclicops robot to default home position."
+                name="home",
+                description="Resets sciclops robot to default home position.",
+                args=[],
             )
         ],
         resource_pools=[],
@@ -122,42 +120,58 @@ async def about() -> JSONResponse:
 
 @app.post("/action")
 def do_action(action_handle: str, action_vars):
+    """
+    Runs an action on the module
+
+    Parameters
+    ----------
+    action_handle : str
+       The name of the action to be performed
+    action_vars : str
+        Any arguments necessary to run that action.
+        This should be a JSON object encoded as a string.
+
+    Returns
+    -------
+    response: StepResponse
+       A response object containing the result of the action
+    """
     global state, sciclops
-    response = {"action_response": "", "action_msg": "", "action_log": ""}
+    response = StepResponse()
     if state == "SCICLOPS CONNECTION ERROR":
         message = "Connection error, cannot accept a job!"
-        response["action_response"] = "failed"
-        response["action_msg"] = message
+        response.action_response = StepStatus.FAILED
+        response.action_log = message
         return response
-    if state == "BUSY":
+    if state == ModuleStatus.BUSY:
         return response
 
-    state = "BUSY"
+    state = ModuleStatus.BUSY
 
     if action_handle == "status":
         try:
             sciclops.get_status()
         except Exception as err:
-            response["action_response"] = "failed"
-            response["action_msg"] = "Get status failed. Error:" + err
+            response.action_response = StepStatus.FAILED
+            response.action_log = "Get status failed. Error:" + err
         else:
-            response["action_response"] = "succeeded"
-            response["action_msg"] = "Get status successfully completed"
+            response.action_response = StepStatus.SUCCEEDED
+            response.action_log = "Get status successfully completed"
 
-        state = "IDLE"
+        state = ModuleStatus.IDLE
         return response
 
     elif action_handle == "home":
         try:
             sciclops.home()
         except Exception as err:
-            response["action_response"] = "failed"
-            response["action_msg"] = "Homing failed. Error:" + err
+            response.action_response = StepStatus.FAILED
+            response.action_log = "Homing failed. Error:" + err
         else:
-            response["action_response"] = "succeeded"
-            response["action_msg"] = "Homing successfully completed"
+            response.action_response = StepStatus.SUCCEEDED
+            response.action_log = "Homing successfully completed"
 
-        state = "IDLE"
+        state = ModuleStatus.IDLE
         return response
 
     elif action_handle == "get_plate":
@@ -171,21 +185,21 @@ def do_action(action_handle: str, action_vars):
         try:
             sciclops.get_plate(pos, lid, trash)
         except Exception as err:
-            response["action_response"] = "failed"
-            response["action_msg"] = "Get plate failed. Error:" + err
+            response.action_response = StepStatus.FAILED
+            response.action_log = "Get plate failed. Error:" + err
         else:
-            response["action_response"] = "succeeded"
-            response["action_msg"] = "Get plate successfully completed"
+            response.action_response = StepStatus.SUCCEEDED
+            response.action_log = "Get plate successfully completed"
 
-        state = "IDLE"
+        state = ModuleStatus.IDLE
 
         return response
 
     else:
         msg = "UNKNOWN ACTION REQUEST! Available actions: status, home, get_plate"
-        response["action_response"] = "failed"
-        response["action_msg"] = msg
-        state = "ERROR"
+        response.action_response = StepStatus.FAILED
+        response.action_msg = msg
+        state = ModuleStatus.IDLE
         return response
 
 
@@ -197,7 +211,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=2002)
     args = parser.parse_args()
     uvicorn.run(
-        "sciclops_rest_client:app",
+        "sciclops_rest_node:app",
         host=args.host,
         port=args.port,
         reload=False,
