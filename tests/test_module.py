@@ -3,8 +3,8 @@
 import time
 import unittest
 from pathlib import Path
-import pytest
 
+import pytest
 import requests
 from wei import ExperimentClient
 from wei.core.data_classes import ModuleAbout, WorkcellData, WorkflowStatus
@@ -58,7 +58,8 @@ class TestSciclopsModule(TestWEI_Base):
         exp = ExperimentClient(self.server_host, self.server_port, "sciclops_test")
 
         result = exp.start_run(
-            Path(self.root_dir) / Path("tests/workflow_defs/test_sciclops_workflow.yaml"),
+            Path(self.root_dir)
+            / Path("tests/workflow_defs/test_sciclops_workflow.yaml"),
             simulate=False,
             blocking=True,
         )

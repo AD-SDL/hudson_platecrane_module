@@ -28,6 +28,8 @@ Sciclops has 4 controllable axes and a gripper.
 
 ### Python
 
+You'll need `libusb` installed (on debian-based linux: `sudo apt install libusb-1.0-0-dev`)
+
 ```bash
 # Create a virtual environment named .venv
 python -m venv .venv

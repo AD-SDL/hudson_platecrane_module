@@ -4,10 +4,10 @@
 import json
 from argparse import ArgumentParser
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from pathlib import Path
 from wei.core.data_classes import (
     ModuleAbout,
     ModuleAction,
@@ -21,6 +21,7 @@ from wei.helpers import extract_version
 from platecrane_driver.sciclops_driver import SCICLOPS
 
 global sciclops, state
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -92,14 +93,14 @@ async def about() -> JSONResponse:
                         name="lid",
                         description="Removes the lid from the plate at position `pos` if True. Default is False.",
                         type="bool",
-                        required=False
+                        required=False,
                     ),
                     ModuleActionArg(
                         name="trash",
                         description="Throws the lid in the trash if True. Default is False.",
                         type="bool",
-                        required=False
-                    )
+                        required=False,
+                    ),
                 ],
             ),
             ModuleAction(
@@ -111,7 +112,7 @@ async def about() -> JSONResponse:
                 name="home",
                 description="Resets sciclops robot to default home position.",
                 args=[],
-            )
+            ),
         ],
         resource_pools=[],
     )
@@ -207,7 +208,12 @@ if __name__ == "__main__":
     import uvicorn
 
     parser = ArgumentParser()
-    parser.add_argument("--host", type=str, default="0.0.0.0", help="Hostname that the REST API will be accessible on")
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="Hostname that the REST API will be accessible on",
+    )
     parser.add_argument("--port", type=int, default=2002)
     args = parser.parse_args()
     uvicorn.run(
