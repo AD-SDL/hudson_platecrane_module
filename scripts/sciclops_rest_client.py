@@ -7,6 +7,16 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from pathlib import Path
+from wei.core.data_classes import (
+    ModuleAbout,
+    ModuleAction,
+    ModuleActionArg,
+    ModuleStatus,
+    StepResponse,
+    StepStatus,
+)
+from wei.helpers import extract_version
 
 from platecrane_driver.sciclops_driver import SCICLOPS
 
@@ -62,13 +72,61 @@ async def resources():
     return JSONResponse(content={"State": sealer.get_status()})
 
 
+@app.get("/about")
+async def about() -> JSONResponse:
+    """Returns a description of the actions and resources the module supports"""
+    global state
+    about = ModuleAbout(
+        name="Sciclops Robotic Arm",
+        description="Sciclops is a robotic arm module that grabs a plate from a specific tower location.",
+        interface="wei_rest_node",
+        version=extract_version(Path(__file__).parent.parent / "pyproject.toml"),
+        actions=[
+            ModuleAction(
+                name="get_plate",
+                description="This action gets a plate from a specified workcell location.",
+                args=[
+                    ModuleActionArg(
+                        name="pos",
+                        description="The workcell location to grab the plate from",
+                        type="str",
+                        required=True,
+                    ), 
+                    ModuleActionArg(
+                        name="lid", 
+                        description="The lid of the plate", 
+                        type="str", 
+                        required=False
+                    ), 
+                    ModuleActionArg(
+                        name="trash",
+                        description="Move plate to trash", 
+                        type="str",
+                        required=False
+                    )                    
+                ],
+            ), 
+            ModuleAction(
+                name="status",
+                description="This action retrieves the current status information for the sciclops as extra information."
+            ), 
+            ModuleAction(
+                name="home", 
+                description="Resets sclicops robot to default home position."
+            )
+        ],
+        resource_pools=[],
+    )
+    return JSONResponse(content=about.model_dump(mode="json"))
+
+
 @app.post("/action")
 def do_action(action_handle: str, action_vars):
     global state, sciclops
     response = {"action_response": "", "action_msg": "", "action_log": ""}
     if state == "SCICLOPS CONNECTION ERROR":
         message = "Connection error, cannot accept a job!"
-        response["action_response"] = -1
+        response["action_response"] = "failed"
         response["action_msg"] = message
         return response
     if state == "BUSY":
@@ -80,10 +138,10 @@ def do_action(action_handle: str, action_vars):
         try:
             sciclops.get_status()
         except Exception as err:
-            response["action_response"] = -1
+            response["action_response"] = "failed"
             response["action_msg"] = "Get status failed. Error:" + err
         else:
-            response["action_response"] = 0
+            response["action_response"] = "succeeded"
             response["action_msg"] = "Get status successfully completed"
 
         state = "IDLE"
@@ -93,10 +151,10 @@ def do_action(action_handle: str, action_vars):
         try:
             sciclops.home()
         except Exception as err:
-            response["action_response"] = -1
+            response["action_response"] = "failed"
             response["action_msg"] = "Homing failed. Error:" + err
         else:
-            response["action_response"] = 0
+            response["action_response"] = "succeeded"
             response["action_msg"] = "Homing successfully completed"
 
         state = "IDLE"
@@ -113,10 +171,10 @@ def do_action(action_handle: str, action_vars):
         try:
             sciclops.get_plate(pos, lid, trash)
         except Exception as err:
-            response["action_response"] = -1
+            response["action_response"] = "failed"
             response["action_msg"] = "Get plate failed. Error:" + err
         else:
-            response["action_response"] = 0
+            response["action_response"] = "succeeded"
             response["action_msg"] = "Get plate successfully completed"
 
         state = "IDLE"
@@ -125,7 +183,7 @@ def do_action(action_handle: str, action_vars):
 
     else:
         msg = "UNKNOWN ACTION REQUEST! Available actions: status, home, get_plate"
-        response["action_response"] = -1
+        response["action_response"] = "failed"
         response["action_msg"] = msg
         state = "ERROR"
         return response
