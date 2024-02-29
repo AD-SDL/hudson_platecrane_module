@@ -8,7 +8,7 @@
     },
 
     "96_deep_well":{
-        "plate_above_height":5000, 
+        "plate_above_height":5000,
         "plate_pick_steps_module": 2950,
         "plate_pick_steps_stack": 7750,
         "plate_lid_steps": 0,
@@ -25,7 +25,7 @@
     },
 
     "tip_box_lid_on":{
-        "plate_above_height":5000, 
+        "plate_above_height":5000,
         "plate_pick_steps_module": 2300,
         "plate_pick_steps_stack": 7100,
         "plate_lid_steps": 6200,
@@ -33,12 +33,12 @@
 
     },
     "tip_box_lid_off":{
-        "plate_above_height":5000, 
+        "plate_above_height":5000,
         "plate_pick_steps_module": 3100,
         "plate_pick_steps_stack": 7900,
         "plate_lid_steps": 0,
         "lid_height": 0
 
     }
-    
+
 }

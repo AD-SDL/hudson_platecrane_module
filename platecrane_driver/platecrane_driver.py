@@ -1,3 +1,4 @@
+"""Handle Proper Interfacing with the PlateCrane"""
 import json
 import re
 
@@ -90,11 +91,6 @@ class PlateCrane:
         command = "HOME\r\n"
         self.__serial_port.send_command(command, timeout)
 
-    def get_error_output(self, output: str):
-        # Find the errors from error codes.
-        self.robot_error = "err"
-        pass
-
     def get_robot_movement_state(self):
         """Summary
 
@@ -150,10 +146,12 @@ class PlateCrane:
         self.robot_status = self.__serial_port.send_command(command)
 
     def free_joints(self):
+        """Unlocks the joints of the plate_crane"""
         command = "limp TRUE\r\n"
         self.__serial_port.send_command(command)
 
     def lock_joints(self):
+        """Locks the joints of the plate_crane"""
         command = "limp FALSE\r\n"
         self.__serial_port.send_command(command)
 
