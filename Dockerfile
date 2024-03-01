@@ -22,4 +22,11 @@ RUN --mount=type=cache,target=/root/.cache \
     pip install -e ./hudson_platecrane_module
 
 CMD ["python", "hudson_platecrane_module/src/sciclops_rest_node.py"]
+<<<<<<< HEAD
+=======
+
+# Add user to video group to access hudson_platecrane
+RUN usermod -a -G video app
+
+>>>>>>> b6c05324ef588685558bdbf33fcfa974c3672eae
 #########################################

@@ -1,3 +1,4 @@
+"""Driver for the Hudson Robotics Sciclops robot."""
 import asyncio
 import re
 
@@ -12,6 +13,7 @@ class SCICLOPS:
     """
 
     def __init__(self, VENDOR_ID=0x7513, PRODUCT_ID=0x0002):
+        """Creates a new SCICLOPS driver object. The default VENDOR_ID and PRODUCT_ID are for the Sciclops robot."""
         self.VENDOR_ID = VENDOR_ID
         self.PRODUCT_ID = PRODUCT_ID
         self.host_path = self.connect_sciclops()
@@ -39,7 +41,7 @@ class SCICLOPS:
 
     def connect_sciclops(self):
         """
-        Connect to serial port / If wrong port entered inform user
+        Connect to USB device. If wrong device, inform user
         """
         host_path = usb.core.find(idVendor=self.VENDOR_ID, idProduct=self.PRODUCT_ID)
 
@@ -51,6 +53,7 @@ class SCICLOPS:
             return host_path
 
     def disconnect_robot(self):
+        """Disconnects from the sciclops robot."""
         try:
             usb.util.dispose_resources(self.host_path)
         except Exception as err:
@@ -775,19 +778,10 @@ class SCICLOPS:
         command = "LIMP %s" % limp_string  # Command interpreted by Sciclops
         self.send_command(command)
 
-    # TODO: see if way to update exchange labware info after p400 puts plate there (probably needs to be in seperate file)
-    """
-    functions to add
-    """
-
-    # TODO: function probably only needed if labware stored on separate file
-    def update_labware(plate_type, source, destination):
-        pass
-
-    # * checks all lid nests to see if there's a lid of same type present, returns occupied lid nest
     def check_for_lid(
         self,
     ):  # TODO: conditional for no available lid to prevent delays?
+        """Checks all lid nests to see if there's a lid of same type present, returns occupied lid nest"""
         if (
             self.labware["lidnest1"]["howmany"] >= 1
             and self.labware["lidnest1"]["type"] == self.labware["exchange"]["type"]
@@ -806,6 +800,7 @@ class SCICLOPS:
     def check_for_empty_nest(
         self,
     ):  # TODO: maybe add conditional to throw away lids in nests if none available?
+        """Check all lid nests to see if there's an empty "available" lid nest, returns open lid nest"""
         if self.labware["lidnest1"]["howmany"] == 0:
             return "lidnest1"
         elif self.labware["lidnest2"]["howmany"] == 0:
@@ -815,6 +810,7 @@ class SCICLOPS:
         pass
 
     def check_stack(self, tower):
+        """Check a stack to see if there's room for another plate, returns True if there is room, False if not."""
         # save z height of stack Z = -36
         tower_z_height = -50
         tower_z_bottom = -421.8625
@@ -831,8 +827,8 @@ class SCICLOPS:
         else:  # stack full
             return False
 
-    # * Remove lid, (self, lidnest, plate_type), removes lid from plate in exchange, trash bool will throw lid into trash
     def remove_lid(self, trash):
+        """Remove lid, (self, lidnest, plate_type), removes lid from plate in exchange, trash bool will throw lid into trash"""
         #  move above plate exchange
         self.set_speed(100)
         self.open()
@@ -925,8 +921,8 @@ class SCICLOPS:
                 self.labware[lid_nest]["type"] = self.labware["exchange"]["type"]
                 self.labware["exchange"]["has_lid"] = False
 
-    # * Plate on exchange, replace lid (self, plateinfo, lidnest)
     def replace_lid(self):
+        """Plate on exchange, replace lid (self, plateinfo, lidnest)"""
         # find a lid
         self.set_speed(100)
         self.open()
@@ -991,8 +987,8 @@ class SCICLOPS:
             self.labware[lid_nest]["howmany"] -= 1
             self.labware["exchange"]["has_lid"] = True
 
-    # * Plate from exchange to stack (self, tower, plateinfo)
     def plate_to_stack(self, tower, add_lid):
+        """Plate from exchange to stack (self, tower, plateinfo)"""
         # Move arm up and to neutral position to avoid hitting any objects
         self.open()
         self.set_speed(10)
@@ -1064,8 +1060,8 @@ class SCICLOPS:
         self.labware["exchange"]["howmany"] -= 1
         self.labware[tower]["howmany"] += 1
 
-    # * Remove lid from lidnest, throw away
     def lidnest_to_trash(self, lidnest):
+        """Remove lid from lidnest, throw away"""
         # Move arm up and to neutral position to avoid hitting any objects
         self.open()
         self.set_speed(10)
@@ -1136,8 +1132,8 @@ class SCICLOPS:
         else:
             print("NO LID IN NEST")
 
-    # * Remove plate from exchange, throw away
     def plate_to_trash(self, add_lid):
+        """Remove plate from exchange, throw away"""
         # Move arm up and to neutral position to avoid hitting any objects
         self.open()
         self.set_speed(10)
