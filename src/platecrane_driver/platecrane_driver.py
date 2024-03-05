@@ -2,7 +2,9 @@
 import json
 import re
 
-from serial_port import SerialPort
+from pathlib import Path
+
+from platecrane_driver.serial_port import SerialPort
 
 
 class PlateCrane:
@@ -46,12 +48,12 @@ class PlateCrane:
 
         self.plate_resources = json.load(
             open(
-                "/home/rpl/wei_ws/src/platecrane_module/platecrane_driver/platecrane_driver/plate_resources.json"
+                Path(__file__).parent / "plate_resources.json"
             )
         )
         self.stack_resources = json.load(
             open(
-                "/home/rpl/wei_ws/src/platecrane_module/platecrane_driver/platecrane_driver/stack_resources.json"
+                Path(__file__).parent / "stack_resources.json"
             )
         )
 
