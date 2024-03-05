@@ -2,8 +2,9 @@
 """The server for the Hudson Platecrane/Sciclops that takes incoming WEI flow requests from the experiment application"""
 
 import json
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from contextlib import asynccontextmanager
+import traceback
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -22,6 +23,17 @@ from platecrane_driver.platecrane_driver import PlateCrane
 
 global platecrane, state
 
+def parse_args() -> Namespace:
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="Hostname that the REST API will be accessible on",
+    )
+    parser.add_argument("--port", type=int, default=2002)
+    parser.add_argument("--device", type=str, default="/dev/ttyUSB0")
+    return parser.parse_args()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,10 +48,13 @@ async def lifespan(app: FastAPI):
     None"""
     global platecrane, state
 
+    args = parse_args()
+
     try:
-        platecrane = PlateCrane()
+        platecrane = PlateCrane(host_path=args.device)
 
     except Exception as error_msg:
+        traceback.print_exc()
         state = "PLATECRANE CONNECTION ERROR"
         print("------- PlateCrane Error message: " + str(error_msg) + (" -------"))
 
@@ -67,8 +82,8 @@ async def about():
     """Returns a description of the actions and resources the module supports"""
     global state
     about = ModuleAbout(
-        name="Sciclops Robotic Arm",
-        description="Sciclops is a robotic arm module that grabs a plate from a specific tower location.",
+        name="Hudson Platecrane",
+        description="Platecrane is a robotic arm module that can pick up and move plates between locations.",
         interface="wei_rest_node",
         version=extract_version(Path(__file__).parent.parent / "pyproject.toml"),
         actions=[
@@ -274,15 +289,8 @@ def do_action(action_handle: str, action_vars):
 if __name__ == "__main__":
     import uvicorn
 
-    parser = ArgumentParser()
-    parser.add_argument(
-        "--host",
-        type=str,
-        default="0.0.0.0",
-        help="Hostname that the REST API will be accessible on",
-    )
-    parser.add_argument("--port", type=int, default=2002)
-    args = parser.parse_args()
+    args = parse_args()
+    
     uvicorn.run(
         "platecrane_rest_node:app",
         host=args.host,

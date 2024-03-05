@@ -12,7 +12,6 @@ RUN apt update && apt install -y libusb-1.0-0-dev && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p hudson_platecrane_module
 
-COPY ./platecrane_driver hudson_platecrane_module/platecrane_driver
 COPY ./src hudson_platecrane_module/src
 COPY ./README.md hudson_platecrane_module/README.md
 COPY ./pyproject.toml hudson_platecrane_module/pyproject.toml
@@ -21,5 +20,7 @@ COPY ./tests hudson_platecrane_module/tests
 RUN --mount=type=cache,target=/root/.cache \
     pip install -e ./hudson_platecrane_module
 
-CMD ["python", "hudson_platecrane_module/src/sciclops_rest_node.py"]
+RUN usermod -aG dialout app
+
+CMD ["python", "-,", "sciclops_rest_node"]
 #########################################
