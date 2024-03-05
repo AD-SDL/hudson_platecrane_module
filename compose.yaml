@@ -1,0 +1,21 @@
+name: hudson_platecrane_module
+services:
+  sciclops:
+    container_name: sciclops
+    image: ${IMAGE}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      tags:
+        - ${IMAGE}:latest
+        - ${IMAGE}:${PROJECT_VERSION}
+        - ${IMAGE}:dev
+    command: python hudson_platecrane_module/src/sciclops_rest_node.py --port 2000
+    privileged: true
+    env_file: .env
+    volumes:
+      - ${DEVICE}:/dev/ttyUSB0
+      - ./src:/home/app/hudson_platecrane_module/src
+      - ./tests:/home/app/hudson_platecrane_module/tests
+    ports:
+      - 2000:2000
