@@ -2,13 +2,14 @@
 """The server for the Hudson Platecrane/Sciclops that takes incoming WEI flow requests from the experiment application"""
 
 import json
+import traceback
 from argparse import ArgumentParser, Namespace
 from contextlib import asynccontextmanager
-import traceback
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from platecrane_driver.platecrane_driver import PlateCrane
 from wei.core.data_classes import (
     ModuleAbout,
     ModuleAction,
@@ -19,11 +20,11 @@ from wei.core.data_classes import (
 )
 from wei.helpers import extract_version
 
-from platecrane_driver.platecrane_driver import PlateCrane
-
 global platecrane, state
 
+
 def parse_args() -> Namespace:
+    """Argument parser"""
     parser = ArgumentParser()
     parser.add_argument(
         "--host",
@@ -34,6 +35,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--port", type=int, default=2002)
     parser.add_argument("--device", type=str, default="/dev/ttyUSB0")
     return parser.parse_args()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -290,7 +292,7 @@ if __name__ == "__main__":
     import uvicorn
 
     args = parse_args()
-    
+
     uvicorn.run(
         "platecrane_rest_node:app",
         host=args.host,
