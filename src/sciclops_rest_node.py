@@ -8,6 +8,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from platecrane_driver.sciclops_driver import SCICLOPS
 from wei.core.data_classes import (
     ModuleAbout,
     ModuleAction,
@@ -17,8 +18,6 @@ from wei.core.data_classes import (
     StepStatus,
 )
 from wei.helpers import extract_version
-
-from platecrane_driver.sciclops_driver import SCICLOPS
 
 global sciclops, state
 
