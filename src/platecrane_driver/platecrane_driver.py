@@ -711,7 +711,10 @@ class PlateCrane:
         self.get_new_plate_height(plate_type)
 
         target_offset = (
-            2 * self.plate_above_height - self.plate_pick_steps_stack + self.lid_height
+            2 * self.plate_above_height
+            - self.plate_pick_steps_stack
+            + self.lid_height
+            + height_offset
         )  # Finding the correct target hight when only transferring the plate lid
         target_loc = self.get_location_joint_values(target)
         remove_lid_target = "Temp_Lid_Target_Loc"
@@ -754,7 +757,10 @@ class PlateCrane:
         self.get_new_plate_height(plate_type)
 
         target_offset = (
-            2 * self.plate_above_height - self.plate_pick_steps_stack + self.lid_height
+            2 * self.plate_above_height
+            - self.plate_pick_steps_stack
+            + self.lid_height
+            + height_offset
         )  # Finding the correct target hight when only transferring the plate lid
         source_loc = self.get_location_joint_values(source)
         remove_lid_source = "Temp_Lid_Source_loc"
