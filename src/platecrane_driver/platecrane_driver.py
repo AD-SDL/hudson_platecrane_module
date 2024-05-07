@@ -3,7 +3,7 @@ import json
 import re
 from pathlib import Path
 
-from platecrane_driver.serial_port import SerialPort
+from serial_port import SerialPort
 
 
 class PlateCrane:
@@ -959,7 +959,7 @@ if __name__ == "__main__":
     """
     Runs given function.
     """
-    s = PlateCrane("/dev/ttyUSB2")
+    s = PlateCrane("/dev/ttyUSB4")
     # s.initialize()
     # s.home()
     stack4 = "Stack4"
@@ -972,47 +972,7 @@ if __name__ == "__main__":
     sealer = "SealerNest"
     # s.move_location("Safe")
 
-    # CASEY TESTING ------------------------------------------------------------------------------------------------------
-    # s.move_location("Stack4")
-    # s.move_single_axis("Z", "Safe", delay_time=1)  # move all the way up in z height
-
-    # print(s.get_location_list())
-
-    # s.transfer("Stack4","Solo.Position1",source_type="stack",target_type="stack",height_offset=800)  # test from stack to solo pos 1
-    # s.transfer("Stack4","Solo.Position1",source_type="stack",target_type="stack")   # Stack 4 to SOLO 1
-
-    # s.transfer("Solo.Position1","Stack5",source_type="stack",target_type="stack")   # SOLO 1 --> Stack 5
-
-    # s.transfer("Stack5","Solo.Position1",source_type="stack",target_type="stack")   # Stack 4 to SOLO 1
-
-    ###
-    # s.transfer("Solo.Position1","Stack3",source_type="stack",target_type="stack")
-
-    # s.transfer("Stack2","PeelerNest",source_type="stack",target_type="stack")
-
-    # s.transfer("PeelerNest","Stack2",source_type="stack",target_type="stack")
-
-    # s.transfer("Stack2","LidNest1",source_type="stack",target_type="stack")
-
-    # s.transfer("LidNest1","Stack1",source_type="stack",target_type="stack")
-
-    # s.transfer("Stack1","LidNest2",source_type="stack",target_type="stack")
-
-    # s.transfer("LidNest2","LidNest3",source_type="stack",target_type="stack")
-
-    # s.transfer("LidNest3". "Solo.Position2", source_type="stack", target_type="stack")
-
-    s.transfer("LidNest1", "Solo.Position1", source_type="stack", target_type="stack")
-
-    ###
-    # s.transfer("Solo.Position1","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)   # SOLO 1 to Hidex
-
-    # s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="module")   # Stack 4 to SOLO 1
-
-
-# ----------------------------------------------------------------------------------------------------------------------------------------
-
-
+# TESTING
 # s.pick_stack_plate("Stack1")
 # a = s.get_position()
 # s.set_location("LidNest3",R=231449,Z=-31500,P=484,Y=-306)
