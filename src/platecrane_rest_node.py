@@ -2,13 +2,14 @@
 """The server for the Hudson Platecrane/Sciclops that takes incoming WEI flow requests from the experiment application"""
 
 import json
+import traceback
 from argparse import ArgumentParser, Namespace
 from contextlib import asynccontextmanager
-import traceback
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from platecrane_driver.platecrane_driver import PlateCrane
 from wei.core.data_classes import (
     ModuleAbout,
     ModuleAction,
@@ -19,11 +20,11 @@ from wei.core.data_classes import (
 )
 from wei.helpers import extract_version
 
-from platecrane_driver.platecrane_driver import PlateCrane
-
 global platecrane, state
 
+
 def parse_args() -> Namespace:
+    """Argument parser"""
     parser = ArgumentParser()
     parser.add_argument(
         "--host",
@@ -34,6 +35,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--port", type=int, default=2002)
     parser.add_argument("--device", type=str, default="/dev/ttyUSB0")
     return parser.parse_args()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -213,6 +215,8 @@ def do_action(action_handle: str, action_vars):
     print("Target location: " + str(target))
     plate_type = action_args.get("plate_type", "96_well")
     print("Plate type: " + str(target))
+    height_offset = action_args.get("height_offset", 0)
+    print("Height Offset: " + str(height_offset))
 
     if action_handle == "transfer":
         print("Starting the transfer request")
@@ -226,9 +230,6 @@ def do_action(action_handle: str, action_vars):
         if not source_type or not target_type:
             print("Please provide source and target transfer types!")
             state = ModuleStatus.ERROR
-
-        height_offset = action_args.get("height_offset", 0)
-        print("Height Offset: " + str(height_offset))
 
         try:
             platecrane.transfer(
@@ -250,9 +251,15 @@ def do_action(action_handle: str, action_vars):
             state = ModuleStatus.IDLE
         print("Finished Action: " + action_handle.upper())
         return response
+
     elif action_handle == "remove_lid":
         try:
-            platecrane.remove_lid(source=source, target=target, plate_type=plate_type)
+            platecrane.remove_lid(
+                source=source,
+                target=target,
+                plate_type=plate_type,
+                height_offset=height_offset,
+            )
         except Exception as err:
             response.action_response = StepStatus.FAILED
             response.action_log = "Remove lid failed. Error:" + str(err)
@@ -264,9 +271,15 @@ def do_action(action_handle: str, action_vars):
             state = ModuleStatus.IDLE
         print("Finished Action: " + action_handle.upper())
         return response
+
     elif action_handle == "replace_lid":
         try:
-            platecrane.replace_lid(source=source, target=target, plate_type=plate_type)
+            platecrane.replace_lid(
+                source=source,
+                target=target,
+                plate_type=plate_type,
+                height_offset=height_offset,
+            )
         except Exception as err:
             response.action_response = StepStatus.FAILED
             response.action_log = "Replace lid failed. Error:" + str(err)
@@ -274,7 +287,22 @@ def do_action(action_handle: str, action_vars):
             state = ModuleStatus.ERROR
         else:
             response.action_response = StepStatus.SUCCEEDED
-            response.action_msg = "Replace lid  successfully completed"
+            response.action_msg = "Replace lid successfully completed"
+            state = ModuleStatus.IDLE
+        print("Finished Action: " + action_handle.upper())
+        return response
+
+    elif action_handle == "move_safe":
+        try:
+            platecrane.move_location("Safe")
+        except Exception as err:
+            response.action_response = StepStatus.FAILED
+            response.action_log = "Move Safe Failed. Error:" + str(err)
+            print(str(err))
+            state = ModuleStatus.ERROR
+        else:
+            response.action_response = StepStatus.SUCCEEDED
+            response.action_msg = "Move Safe successfully completed"
             state = ModuleStatus.IDLE
         print("Finished Action: " + action_handle.upper())
         return response
@@ -290,7 +318,7 @@ if __name__ == "__main__":
     import uvicorn
 
     args = parse_args()
-    
+
     uvicorn.run(
         "platecrane_rest_node:app",
         host=args.host,

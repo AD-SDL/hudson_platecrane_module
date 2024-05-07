@@ -1,7 +1,6 @@
 """Handle Proper Interfacing with the PlateCrane"""
 import json
 import re
-
 from pathlib import Path
 
 from serial_port import SerialPort
@@ -47,14 +46,10 @@ class PlateCrane:
         self.platecrane_current_position = None
 
         self.plate_resources = json.load(
-            open(
-                Path(__file__).parent / "plate_resources.json"
-            )
+            open(Path(__file__).parent / "plate_resources.json")
         )
         self.stack_resources = json.load(
-            open(
-                Path(__file__).parent / "stack_resources.json"
-            )
+            open(Path(__file__).parent / "stack_resources.json")
         )
 
         self.initialize()
@@ -716,7 +711,10 @@ class PlateCrane:
         self.get_new_plate_height(plate_type)
 
         target_offset = (
-            2 * self.plate_above_height - self.plate_pick_steps_stack + self.lid_height
+            2 * self.plate_above_height
+            - self.plate_pick_steps_stack
+            + self.lid_height
+            + height_offset
         )  # Finding the correct target hight when only transferring the plate lid
         target_loc = self.get_location_joint_values(target)
         remove_lid_target = "Temp_Lid_Target_Loc"
@@ -759,7 +757,10 @@ class PlateCrane:
         self.get_new_plate_height(plate_type)
 
         target_offset = (
-            2 * self.plate_above_height - self.plate_pick_steps_stack + self.lid_height
+            2 * self.plate_above_height
+            - self.plate_pick_steps_stack
+            + self.lid_height
+            + height_offset
         )  # Finding the correct target hight when only transferring the plate lid
         source_loc = self.get_location_joint_values(source)
         remove_lid_source = "Temp_Lid_Source_loc"
@@ -971,51 +972,49 @@ if __name__ == "__main__":
     sealer = "SealerNest"
     # s.move_location("Safe")
 
+# TESTING
+# s.pick_stack_plate("Stack1")
+# a = s.get_position()
+# s.set_location("LidNest3",R=231449,Z=-31500,P=484,Y=-306)
 
-# ----------------------------------------------------------------------------------------------------------------------------------------
+# s.set_location("Hidex.Nest",R=a[0],Z=a[1],P=a[2],Y=a[3])
+# s.place_module_plate("Hidex.Nest")
+# s.move_single_axis("Z","Hidex.Nest")
+# s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="stack",height_offset=800)
+# s.transfer("Stack1", "PeelerNest",source_type="stack",target_type="stack")
 
-    # s.pick_stack_plate("Stack1")  
-    # a = s.get_position()
-    # s.set_location("LidNest3",R=231449,Z=-31500,P=484,Y=-306)
+# s.place_module_plate()
+# s.get_location_list()
 
-    # s.set_location("Hidex.Nest",R=a[0],Z=a[1],P=a[2],Y=a[3])
-    # s.place_module_plate("Hidex.Nest")
-    # s.move_single_axis("Z","Hidex.Nest")
-    # s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="stack",height_offset=800)
-    # s.transfer("Stack1", "PeelerNest",source_type="stack",target_type="stack")
+# s.move_joints_neutral()
+# s.move_single_axis("R", "Safe", delay_time=1)
+# s.set_location("Safe",R=195399,Z=0,P=0,Y=0)
+# s.set_location("LidNest2",R=131719,Z=-31001,P=-5890,Y=-315)
+# s.transfer(source="LidNest1",target="LidNest2",source_type="stack",target_type="stack", plate_type="96_well")
 
-    # s.place_module_plate()
-    # s.get_location_list()
+# s.transfer(source="LidNest2",target="LidNest3",source_type="stack",target_type="stack", plate_type="96_well")
+# s.transfer("Stack1","Stack1")
+# s.free_joints()
+# s.lock_joints()
 
-    # s.move_joints_neutral()
-    # s.move_single_axis("R", "Safe", delay_time=1)
-    # s.set_location("Safe",R=195399,Z=0,P=0,Y=0)
-    # s.set_location("LidNest2",R=131719,Z=-31001,P=-5890,Y=-315)
-    # s.transfer(source="LidNest1",target="LidNest2",source_type="stack",target_type="stack", plate_type="96_well")
+# s.set_location("LidNest3",R=99817,Z=-31001,P=-5890,Y=-315)
 
-    # s.transfer(source="LidNest2",target="LidNest3",source_type="stack",target_type="stack", plate_type="96_well")
-    # s.transfer("Stack1","Stack1")
-    # s.free_joints()
-    # s.lock_joints()
+# s.get_location_joint_values("HidexNest2")
+# s.set_location("HidexNest2", R=210015,Z=-30400,P=490,Y=2323)
 
-    # s.set_location("LidNest3",R=99817,Z=-31001,P=-5890,Y=-315)
+# s.transfer(stack5, solo4, source_type = "stack", target_type = "module", plate_type = "96_deep_well")
+# s.transfer(solo4, stack5, source_type = "module", target_type = "stack", plate_type = "96_deep_well")
 
-    # s.get_location_joint_values("HidexNest2")
-    # s.set_location("HidexNest2", R=210015,Z=-30400,P=490,Y=2323)
-
-    # s.transfer(stack5, solo4, source_type = "stack", target_type = "module", plate_type = "96_deep_well")
-    # s.transfer(solo4, stack5, source_type = "module", target_type = "stack", plate_type = "96_deep_well")
-
-    # s.remove_lid(source = "LidNest1", target="LidNest2", plate_type="96_well")
-    # s.transfer("Stack4", solo3, source_type = "stack", target_type = "stack", plate_type = "tip_box_lid_off")
-    # s.remove_lid(source = solo6, target="LidNest3", plate_type="tip_box_lid_on")
-    # s.replace_lid(source = "LidNest3", target = solo6, plate_type = "tip_box_lid_on")
-    # s.replace_lid(source = "LidNest2", target = solo4, plate_type = "96_well")
-    # s.transfer(solo4, stack5, source_type = "module", target_type = "stack", plate_type = "96_well")
-    # s.transfer(solo6, "Stack2", source_type = "module", target_type = "stack", plate_type = "tip_box_lid_on")
+# s.remove_lid(source = "LidNest1", target="LidNest2", plate_type="96_well")
+# s.transfer("Stack4", solo3, source_type = "stack", target_type = "stack", plate_type = "tip_box_lid_off")
+# s.remove_lid(source = solo6, target="LidNest3", plate_type="tip_box_lid_on")
+# s.replace_lid(source = "LidNest3", target = solo6, plate_type = "tip_box_lid_on")
+# s.replace_lid(source = "LidNest2", target = solo4, plate_type = "96_well")
+# s.transfer(solo4, stack5, source_type = "module", target_type = "stack", plate_type = "96_well")
+# s.transfer(solo6, "Stack2", source_type = "module", target_type = "stack", plate_type = "tip_box_lid_on")
 
 
-#    Crash error outputs 21(R axis),14(z axis), 02 Wrong location name. 1400 (Z axis hits the plate), 00 success 
+#    Crash error outputs 21(R axis),14(z axis), 02 Wrong location name. 1400 (Z axis hits the plate), 00 success
 # TODO: Need a response handler function. Unkown error messages T1, ATS, TU these are about connection issues (multiple access?)
 # TODO: Slow the arm before hitting the plate in pick_stack_plate
 # TODO: Create a plate detect function within pick stack plate function
