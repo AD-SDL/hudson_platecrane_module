@@ -164,6 +164,11 @@ async def about():
                     ),
                 ],
             ),
+            ModuleAction(
+                name="move_safe",
+                description="This action moves the arm to a safe location.",
+                args=[],
+            ),
         ],
         resource_pools=[],
     )
