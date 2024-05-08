@@ -1,10 +1,19 @@
+
 {
+    "example":{
+        "plate_above_height": "The Z height of the top of the plate",
+        "plate_pick_steps_module": "Number of Z height steps to travel to pick a plate when the gripper approaches from the top of the plate",
+        "plate_pick_steps_stack":  "Number of Z height steps to travel to pick a plate when the gripper approaches using module transfer motions",
+        "plate_lid_steps": "Number of Z height steps to travel to pick a plate lid when the gripper approaches from the top of the plate",
+        "lid_destination_height": "The Z height of the destination location when transferring a plate lid"
+    },
+
     "96_well":{
         "plate_above_height": 800,
         "plate_pick_steps_module": 1500,
         "plate_pick_steps_stack": 2400,
         "plate_lid_steps": 1300,
-        "lid_height": 1400
+        "lid_destination_height": 1400
     },
 
     "96_deep_well":{
@@ -12,7 +21,7 @@
         "plate_pick_steps_module": 2950,
         "plate_pick_steps_stack": 7750,
         "plate_lid_steps": 0,
-        "lid_height": 0
+        "lid_destination_height": 0
     },
 
     "pcr_plate":{
@@ -20,7 +29,7 @@
         "plate_pick_steps_module": 5700,
         "plate_pick_steps_stack": 10800,
         "plate_lid_steps": 10000,
-        "lid_height": 1400
+        "lid_destination_height": 1400
 
     },
 
@@ -29,7 +38,7 @@
         "plate_pick_steps_module": 2300,
         "plate_pick_steps_stack": 7100,
         "plate_lid_steps": 6200,
-        "lid_height": 400
+        "lid_destination_height": 400
 
     },
     "tip_box_lid_off":{
@@ -37,16 +46,16 @@
         "plate_pick_steps_module": 3100,
         "plate_pick_steps_stack": 7900,
         "plate_lid_steps": 0,
-        "lid_height": 0
-    }, 
-    "test_96_well":{ 
+        "lid_destination_height": 0
+    },
+    "test_96_well":{
         "plate_above_height": 800,
         "plate_pick_steps_module": 1500,
         "plate_pick_steps_stack": 2400,
-        "plate_lid_steps": 100,
-        "lid_height": 2500   
+        "plate_lid_steps": 1000,
+        "lid_destination_height": 1300
     }
-    
-    
+
+
 
 }
