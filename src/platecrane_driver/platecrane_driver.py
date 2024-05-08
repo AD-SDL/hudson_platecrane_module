@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 
 from platecrane_driver.serial_port import SerialPort
+#from serial_port import SerialPort
 
 
 class PlateCrane:
@@ -35,7 +36,7 @@ class PlateCrane:
         self.plate_pick_steps_stack = 1600
         self.plate_pick_steps_module = 1400
         self.plate_lid_steps = 800
-        self.lid_height = 1400
+        self.lid_destination_height = 1400
 
         self.stack_exchange_Z_height = -31887
         self.stack_exchange_Y_axis_steps = 200  # TODO: Find the correct number of steps to move Y axis from the stack to the exchange location
@@ -712,10 +713,10 @@ class PlateCrane:
 
         # TESTING
         print("LID HEIGHT")
-        print(self.lid_height)
+        print(self.lid_destination_height)
 
         target_offset = (
-            2 * self.plate_above_height - self.plate_pick_steps_stack + self.lid_height
+            2 * self.plate_above_height - self.plate_pick_steps_stack + self.lid_destination_height
             # + height_offset
         )  # Finding the correct target hight when only transferring the plate lid
         target_loc = self.get_location_joint_values(target)
@@ -760,7 +761,7 @@ class PlateCrane:
         self.get_new_plate_height(plate_type)
 
         target_offset = (
-            2 * self.plate_above_height - self.plate_pick_steps_stack + self.lid_height
+            2 * self.plate_above_height - self.plate_pick_steps_stack + self.lid_destination_height
         )
 
         source_loc = self.get_location_joint_values(source)
@@ -897,7 +898,7 @@ class PlateCrane:
         self.plate_pick_steps_module = self.plate_resources[plate_type][
             "plate_pick_steps_module"
         ]
-        self.lid_height = self.plate_resources[plate_type]["lid_height"]
+        self.lid_destination_height = self.plate_resources[plate_type]["lid_destination_height"]
 
     def get_stack_resource(
         self,
