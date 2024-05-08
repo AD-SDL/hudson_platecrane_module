@@ -3,6 +3,7 @@ import json
 import re
 from pathlib import Path
 
+#from platecrane_driver.serial_port import SerialPort
 from serial_port import SerialPort
 
 
@@ -710,11 +711,15 @@ class PlateCrane:
         """
         self.get_new_plate_height(plate_type)
 
+        # TESTING 
+        print("LID HEIGHT")
+        print(self.lid_height)
+
         target_offset = (
             2 * self.plate_above_height
             - self.plate_pick_steps_stack
             + self.lid_height
-            + height_offset
+            # + height_offset
         )  # Finding the correct target hight when only transferring the plate lid
         target_loc = self.get_location_joint_values(target)
         remove_lid_target = "Temp_Lid_Target_Loc"
@@ -727,6 +732,7 @@ class PlateCrane:
             target_loc[3],
         )
         self.plate_pick_steps_stack = self.plate_lid_steps
+        
         self.transfer(
             source=source,
             target=remove_lid_target,
@@ -760,7 +766,7 @@ class PlateCrane:
             2 * self.plate_above_height
             - self.plate_pick_steps_stack
             + self.lid_height
-            + height_offset
+            # + height_offset
         )  # Finding the correct target hight when only transferring the plate lid
         source_loc = self.get_location_joint_values(source)
         remove_lid_source = "Temp_Lid_Source_loc"
