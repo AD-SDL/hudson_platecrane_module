@@ -3,8 +3,7 @@ import json
 import re
 from pathlib import Path
 
-#from platecrane_driver.serial_port import SerialPort
-from serial_port import SerialPort
+from platecrane_driver.serial_port import SerialPort
 
 
 class PlateCrane:
@@ -711,14 +710,12 @@ class PlateCrane:
         """
         self.get_new_plate_height(plate_type)
 
-        # TESTING 
+        # TESTING
         print("LID HEIGHT")
         print(self.lid_height)
 
         target_offset = (
-            2 * self.plate_above_height
-            - self.plate_pick_steps_stack
-            + self.lid_height
+            2 * self.plate_above_height - self.plate_pick_steps_stack + self.lid_height
             # + height_offset
         )  # Finding the correct target hight when only transferring the plate lid
         target_loc = self.get_location_joint_values(target)
@@ -731,8 +728,8 @@ class PlateCrane:
             target_loc[2],
             target_loc[3],
         )
-        self.plate_pick_steps_stack = self.plate_lid_steps
-        
+        self.plate_pick_steps_stack = self.plate_lid_steps + height_offset
+
         self.transfer(
             source=source,
             target=remove_lid_target,
@@ -763,11 +760,9 @@ class PlateCrane:
         self.get_new_plate_height(plate_type)
 
         target_offset = (
-            2 * self.plate_above_height
-            - self.plate_pick_steps_stack
-            + self.lid_height
-            # + height_offset
-        )  # Finding the correct target hight when only transferring the plate lid
+            2 * self.plate_above_height - self.plate_pick_steps_stack + self.lid_height
+        )
+
         source_loc = self.get_location_joint_values(source)
         remove_lid_source = "Temp_Lid_Source_loc"
 
@@ -778,7 +773,7 @@ class PlateCrane:
             source_loc[2],
             source_loc[3],
         )
-        self.plate_pick_steps_stack = self.plate_lid_steps
+        self.plate_pick_steps_stack = self.plate_lid_steps + height_offset
 
         self.transfer(
             source=remove_lid_source,

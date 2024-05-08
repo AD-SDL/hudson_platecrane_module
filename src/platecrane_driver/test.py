@@ -1,9 +1,7 @@
+# Noqa
 import platecrane_driver
 
-
 if __name__ == "__main__":
-    import platecrane_driver
-
     """
     Runs given function.
     """
@@ -22,22 +20,20 @@ if __name__ == "__main__":
 
     # print(s.lid_height)
 
-    s.remove_lid(source = "Solo.Position2", target="LidNest1", plate_type="test_96_well")
-    #print(s.lid_height)
+    s.remove_lid(source="Solo.Position2", target="LidNest1", plate_type="test_96_well")
+    # print(s.lid_height)
     # s.move_location("Solo.Position1")
-    
 
     # print(s.get_position())
     # s.set_location("Safe", 182220, 2500, 460, -308)
-    
+
     # # # s.move_location("Solo.Position1")
     # s.move_location("Safe")
-    
-    
+
     # s.move_location("Stack4")
     # s.move_single_axis("Z", "Safe", delay_time=1)  # move all the way up in z height
 
-    #print(s.get_location_list())
+    # print(s.get_location_list())
 
     # s.transfer("Stack4","Solo.Position1",source_type="stack",target_type="stack",height_offset=800)  # test from stack to solo pos 1
     # s.transfer("Stack4","Solo.Position1",source_type="stack",target_type="stack")   # Stack 4 to SOLO 1
@@ -75,19 +71,17 @@ if __name__ == "__main__":
 
     ### Hidex Recalibration
 
-    #s.transfer("Solo.Position1","Hidex.Nest",source_type="stack",target_type="module", height_offset = 700)
+    # s.transfer("Solo.Position1","Hidex.Nest",source_type="stack",target_type="module", height_offset = 700)
 
+    # print(s.get_location_list())
 
-    #print(s.get_location_list())
+    # s.set_location("Sealer.Nest", 117468, 1220, -4748, 4550)
 
-    #s.set_location("Sealer.Nest", 117468, 1220, -4748, 4550)
-
-    #print(s.get_position())
+    # print(s.get_position())
     # s.delete_location("Temp_Lid_Source_Loc")
     # s.delete_location("Temp_Lid_Target_Loc")
     # s.delete_location("Temp_Lid_Source_loc")
-    #s.delete_location("TEST")
-
+    # s.delete_location("TEST")
 
     # s.transfer(
     #     "Hidex.Nest",
@@ -98,7 +92,6 @@ if __name__ == "__main__":
     # )
 
     # print(s.get_location_list())
-
 
     # s.transfer("Solo.Position1","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
     # s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="stack", height_offset=650)
@@ -115,7 +108,7 @@ if __name__ == "__main__":
     # s.transfer("Hidex.Nest","LidNest1",source_type="module",target_type="stack", height_offset=650)
 
     # s.transfer("LidNest1","LidNest2",source_type="stack",target_type="stack")
-    
+
     # s.transfer("LidNest2","LidNest3",source_type="stack",target_type="stack")
 
     # s.transfer("LidNest3","Stack1",source_type="stack",target_type="stack")
@@ -132,24 +125,22 @@ if __name__ == "__main__":
 # old sealer nest 28:SealerNest, 210256, -1050, 491, 5730
 
 
+# Hidex positions test
+# s.transfer("Solo.Position2","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
+# s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="stack", height_offset=650)
+# s.transfer("Solo.Position1","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
+# s.transfer("Hidex.Nest","Solo.Position2",source_type="module",target_type="stack", height_offset=650)
 
 
-    # Hidex positions test
-    # s.transfer("Solo.Position2","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
-    # s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="stack", height_offset=650)
-    # s.transfer("Solo.Position1","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
-    # s.transfer("Hidex.Nest","Solo.Position2",source_type="module",target_type="stack", height_offset=650)
+# Hidex position test
+# s.transfer("Peeler.Nest","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
+# s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="stack", height_offset=650)
 
+# s.transfer("Solo.Position1","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
+# s.transfer("Hidex.Nest","Solo.Position2",source_type="module",target_type="stack", height_offset=650)
 
-    # Hidex position test
-    # s.transfer("Peeler.Nest","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
-    # s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="stack", height_offset=650)
-
-    # s.transfer("Solo.Position1","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
-    # s.transfer("Hidex.Nest","Solo.Position2",source_type="module",target_type="stack", height_offset=650)
-
-    # s.transfer("Solo.Position2","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
-    # s.transfer("Hidex.Nest","Peeler.Nest",source_type="module",target_type="stack", height_offset=650)
+# s.transfer("Solo.Position2","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
+# s.transfer("Hidex.Nest","Peeler.Nest",source_type="module",target_type="stack", height_offset=650)
 
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
@@ -159,16 +150,14 @@ if __name__ == "__main__":
 # a = s.get_position()
 # s.set_location("LidNest3",R=231449,Z=-31500,P=484,Y=-306)
 
-    # s.transfer("Solo.Position1","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
-    # s.transfer("Hidex.Nest","Solo.Position2",source_type="module",target_type="stack", height_offset=650)
+# s.transfer("Solo.Position1","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
+# s.transfer("Hidex.Nest","Solo.Position2",source_type="module",target_type="stack", height_offset=650)
 
-    # s.transfer("Solo.Position2","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
-    # s.transfer("Hidex.Nest","Peeler.Nest",source_type="module",target_type="stack", height_offset=650)
+# s.transfer("Solo.Position2","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
+# s.transfer("Hidex.Nest","Peeler.Nest",source_type="module",target_type="stack", height_offset=650)
 
-    # s.transfer("Peeler.Nest","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
-    # s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="stack", height_offset=650)
-
-
+# s.transfer("Peeler.Nest","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)
+# s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="stack", height_offset=650)
 
 
 # s.place_module_plate()
