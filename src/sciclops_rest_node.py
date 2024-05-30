@@ -66,7 +66,7 @@ def get_plate(
 ):
     print(state._state)
     state.sciclops.get_plate(pos, lid, trash)
-    return StepResponse(StepStatus.SUCCEEDED, "got_plate", "")
+    return StepResponse({"action_response": StepStatus.SUCCEEDED, "action_msg": "got_plate", "action_log": ""})
 
 
 rest_module.start()
