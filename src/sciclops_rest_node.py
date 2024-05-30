@@ -67,7 +67,7 @@ def status(state: State,
            lid: Annotated[bool, "Whether plate has a lid or not"] = False,
            trash: Annotated[bool, "Whether to use the trash"] = False
            ):
-    print(dir(state))
+    print(state._state)
     state.sciclops.get_plate(pos, lid, trash)
     return StepResponse(StepStatus.SUCCEEDED, "robot homed")
 
