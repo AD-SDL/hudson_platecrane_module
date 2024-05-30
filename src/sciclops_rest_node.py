@@ -30,7 +30,7 @@ def sciclops_startup(state: State):
     Returns
     -------
     None"""
-
+    print("Hello, World!")
     try:
         state.sciclops = SCICLOPS()
         print(state._state)
@@ -41,8 +41,6 @@ def sciclops_startup(state: State):
     else:
         print("SCICLOPS online")
     state.status = ModuleStatus.IDLE
-    yield
-    pass
 
 
 @rest_module.action(name="status", description="force sciclops to check its status")
