@@ -70,6 +70,7 @@ def status(state: State,
     state.sciclops.get_plate(pos, lid, trash)
     return StepResponse(StepStatus.SUCCEEDED, "robot homed")
 
+rest_module.start()
 
 
 
