@@ -38,7 +38,7 @@ def sciclops_startup(state: State):
 
     try:
         state.sciclops = SCICLOPS()
-
+        print(dir(state))
     except Exception as error_msg:
         state.status= ModuleStatus.ERROR
         print("------- SCICLOPS Error message: " + str(error_msg) + (" -------"))
@@ -67,6 +67,7 @@ def status(state: State,
            lid: Annotated[bool, "Whether plate has a lid or not"] = False,
            trash: Annotated[bool, "Whether to use the trash"] = False
            ):
+    print(dir(state))
     state.sciclops.get_plate(pos, lid, trash)
     return StepResponse(StepStatus.SUCCEEDED, "robot homed")
 
