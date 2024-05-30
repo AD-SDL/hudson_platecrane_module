@@ -47,13 +47,13 @@ def sciclops_startup(state: State):
 
 @rest_module.action(name="status", description="force sciclops to check its status")
 def status(state: State, action: ActionRequest):
-    return StepResponse(StepStatus.SUCCEEDED, state.sciclops.status())
+    return StepResponse(StepStatus.SUCCEEDED, state.sciclops.status(), "")
 
 
 @rest_module.action(name="home", description="force sciclops to check its status")
 def home(state: State, action: ActionRequest):
     state.sciclops.home()
-    return StepResponse(StepStatus.SUCCEEDED, "robot homed")
+    return StepResponse(StepStatus.SUCCEEDED, "robot homed", "")
 
 
 @rest_module.action(name="get_plate", description="force sciclops to check its status")
@@ -66,7 +66,7 @@ def get_plate(
 ):
     print(state._state)
     state.sciclops.get_plate(pos, lid, trash)
-    return StepResponse(StepStatus.SUCCEEDED, "robot homed")
+    return StepResponse(StepStatus.SUCCEEDED, "got_plate", "")
 
 
 rest_module.start()
