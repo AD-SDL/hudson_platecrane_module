@@ -218,7 +218,7 @@ def do_action(action_handle: str, action_vars):
     print("Source location: " + str(source))
     target = action_args.get("target")
     print("Target location: " + str(target))
-    plate_type = action_args.get("plate_type", "96_well")
+    plate_type = action_args.get("plate_type", "96_well")   
     print("Plate type: " + str(target))
     height_offset = action_args.get("height_offset", 0)
     print("Height Offset: " + str(height_offset))

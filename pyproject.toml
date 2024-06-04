@@ -17,6 +17,7 @@ dependencies = [
     "libusb",
     "pyserial",
     "ad_sdl.wei",
+    "pydantic>=2.7",
     "pytest"
 ]
 requires-python = ">=3.8.1"
