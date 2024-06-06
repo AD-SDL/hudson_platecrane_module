@@ -218,30 +218,30 @@ def do_action(action_handle: str, action_vars):
     print("Source location: " + str(source))
     target = action_args.get("target")
     print("Target location: " + str(target))
-    plate_type = action_args.get("plate_type", "96_well")   
-    print("Plate type: " + str(target))
+    plate_type = action_args.get("plate_type", "flat_bottom_96")   
+    print("Plate type: " + str(plate_type))
     height_offset = action_args.get("height_offset", 0)
     print("Height Offset: " + str(height_offset))
 
     if action_handle == "transfer":
         print("Starting the transfer request")
 
-        source_type = action_args.get("source_type", None)
-        print("Source Type: " + str(source_type))
+        # source_type = action_args.get("source_type", None)
+        # print("Source Type: " + str(source_type))
 
-        target_type = action_args.get("target_type", None)
-        print("Target Type: " + str(target_type))
+        # target_type = action_args.get("target_type", None)
+        # print("Target Type: " + str(target_type))
 
-        if not source_type or not target_type:
-            print("Please provide source and target transfer types!")
-            state = ModuleStatus.ERROR
+        # if not source_type or not target_type:
+        #     print("Please provide source and target transfer types!")
+        #     state = ModuleStatus.ERROR
 
         try:
             platecrane.transfer(
                 source,
                 target,
-                source_type=source_type.lower(),
-                target_type=target_type.lower(),
+                # source_type=source_type.lower(),
+                # target_type=target_type.lower(),
                 height_offset=int(height_offset),
                 plate_type=plate_type,
             )

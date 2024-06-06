@@ -2,10 +2,11 @@
 import json
 import re
 from pathlib import Path
+
 #from platecrane_driver.serial_port import SerialPort      # use when running through wei/REST clients
 from serial_port import SerialPort   # use when running through driver
-
-import config
+from resource_defs import locations, plate_definitions
+#import platecrane_driver.resource_defs as resource_defs
 
 
 class PlateCrane:
@@ -33,11 +34,11 @@ class PlateCrane:
         self.status = 0
         self.error = ""
         self.gripper_length = 0
-        self.plate_above_height = 700 # was 700  # TODO: This seems to change nothing
-        self.plate_pick_steps_stack = 1600
-        self.plate_pick_steps_module = 1400
-        self.plate_lid_steps = 800
-        self.lid_destination_height = 1400
+        # self.plate_above_height = 700 # was 700  # TODO: This seems to change nothing
+        # self.plate_pick_steps_stack = 1600
+        # self.plate_pick_steps_module = 1400
+        # self.plate_lid_steps = 800
+        # self.lid_destination_height = 1400
 
         self.stack_exchange_Z_height = -31887
         self.stack_exchange_Y_axis_steps = 200  # TODO: Find the correct number of steps to move Y axis from the stack to the exchange location
@@ -90,44 +91,44 @@ class PlateCrane:
         command = "HOME\r\n"
         self.__serial_port.send_command(command, timeout)
 
-    def get_robot_movement_state(self):
-        """Summary
+    # def get_robot_movement_state(self):   # NEVER USED
+    #     """Summary
 
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
-        """
+    #     :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
+    #     :type [ParamName]: [ParamType](, optional)
+    #     ...
+    #     :raises [ErrorType]: [ErrorDescription]
+    #     ...
+    #     :return: [ReturnDescription]
+    #     :rtype: [ReturnType]
+    #     """
 
-        # current_postion = self.get_position()
-        # print(current_postion)
-        # print(self.platecrane_current_position)
-        # if self.platecrane_current_position != current_postion:
-        #     self.movement_state = "BUSY"
-        #     self.platecrane_current_position = current_postion
-        # else:
-        #     self.movement_state = "READY"
-        # print(self.movement_state)
-        self.movement_state = "READY"
+    #     # current_postion = self.get_position()
+    #     # print(current_postion)
+    #     # print(self.platecrane_current_position)
+    #     # if self.platecrane_current_position != current_postion:
+    #     #     self.movement_state = "BUSY"
+    #     #     self.platecrane_current_position = current_postion
+    #     # else:
+    #     #     self.movement_state = "READY"
+    #     # print(self.movement_state)
+    #     self.movement_state = "READY"
 
-    def wait_robot_movement(self):
-        """Summary
+    # def wait_robot_movement(self):    # NEVER USED
+    #     """Summary
 
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
-        """
+    #     :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
+    #     :type [ParamName]: [ParamType](, optional)
+    #     ...
+    #     :raises [ErrorType]: [ErrorDescription]
+    #     ...
+    #     :return: [ReturnDescription]
+    #     :rtype: [ReturnType]
+    #     """
 
-        self.get_robot_movement_state()
-        if self.movement_state != "READY":
-            self.wait_robot_movement()
+    #     self.get_robot_movement_state()
+    #     if self.movement_state != "READY":
+    #         self.wait_robot_movement()
 
     def get_status(self):
         """Checks status of plate_crane
@@ -494,19 +495,19 @@ class PlateCrane:
 
 
          # get joint values of given location
-        joint_values = config.location.joint_angles
+        joint_values = resource_defs.location.joint_angles
         current_pos = self.get_position() # get joint values of current position
 
-        self.plate_above_height = config.location.safe_approach_height
+        self.plate_above_height = resource_defs.location.safe_approach_height
         module_safe_height = joint_values[1] + self.plate_above_height
         self.module_safe_height = module_safe_height
 
         height_jog_steps = current_pos[1] - module_safe_height # first step of safe approach
 
-        self.move_joint_angles(R=config.location.joint_angles[0], Z=current_pos[1], P=current_pos[2], Y=current_pos[3])
+        self.move_joint_angles(R=resource_defs.location.joint_angles[0], Z=current_pos[1], P=current_pos[2], Y=current_pos[3])
         # self.move_single_axis("R", location) # TODO: adjust to use config instead of values stored in platecrane
         current_pos = self.get_position() # get joint values of current position
-        self.move_joint_angles(R=current_pos[0], Z=current_pos[1], P=config.location.joint_angles[2], Y=current_pos[3])
+        self.move_joint_angles(R=current_pos[0], Z=current_pos[1], P=resource_defs.location.joint_angles[2], Y=current_pos[3])
         # self.move_single_axis("P", location)
         self.jog("Z", -height_jog_steps)
 
@@ -531,13 +532,13 @@ class PlateCrane:
 
         self.move_nest_approach(source)
         current_pos = self.get_position()
-        self.move_joint_angles(R=current_pos[0], Z=current_pos[1], P=current_pos[2], Y=config.source.joint_angless[3])
+        self.move_joint_angles(R=current_pos[0], Z=current_pos[1], P=current_pos[2], Y=resource_defs.source.joint_angless[3])
 
         # self.move_single_axis("Y", source)
         # self.jog("Z", -(self.plate_pick_steps_module - height_offset))
-        self.jog("Z", (config.source.joint_angles[1] - self.module_safe_height + height_offset)) #TODO: test, replace height offset
+        self.jog("Z", (resource_defs.source.joint_angles[1] - self.module_safe_height + height_offset)) #TODO: test, replace height offset
         self.gripper_close()
-        self.jog("Z", config.source.safe_approach_height)
+        self.jog("Z", resource_defs.source.safe_approach_height)
 
         self.move_arm_neutral()
 
@@ -558,16 +559,16 @@ class PlateCrane:
 
         self.move_nest_approach(target) # faces destination, lowers to safe approach height
         current_pos = self.get_position()
-        self.move_joint_angles(R=current_pos[0], Z=current_pos[1], P=current_pos[2], Y=config.source.joint_angless[3])
+        self.move_joint_angles(R=current_pos[0], Z=current_pos[1], P=current_pos[2], Y=resource_defs.source.joint_angless[3])
         self.move_single_axis("Y", target)
         # self.jog("Z", -(self.plate_pick_steps_module - height_offset))
-        self.jog("Z", (config.target.joint_angles[1] - self.module_safe_height + height_offset)) #TODO: test, replace height offsetwith plate dimensions
+        self.jog("Z", (resource_defs.target.joint_angles[1] - self.module_safe_height + height_offset)) #TODO: test, replace height offsetwith plate dimensions
         self.gripper_open()
-        self.jog("Z", config.target.safe_approach_height)
+        self.jog("Z", resource_defs.target.safe_approach_height)
 
         self.move_arm_neutral()
 
-    def pick_plate_direct(self, source: str, source_type: str, height_offset: int = 0, is_lid: bool=False) -> None:
+    def pick_plate_direct(self, source: str, source_type: str, plate_type: str, height_offset: int = 0, incremental_lift: bool=False) -> None:
         """Pick a stack plate from stack location.
 
         :param source: Name of the source location.
@@ -578,23 +579,39 @@ class PlateCrane:
 
         self.move_joints_neutral()
         current_pos = self.get_position()
-        self.move_joint_angles(R=config.source.joint_angles[0], Z=current_pos[1], P=current_pos[2], Y=current_pos[3])
+        self.move_joint_angles(
+            R=locations[source].joint_angles[0], 
+            Z=current_pos[1], 
+            P=current_pos[2], 
+            Y=current_pos[3],
+        )
         # self.move_single_axis("R", source)
 
         if source_type == "stack":
             self.gripper_close()
             # self.move_location(source)
-            self.move_joint_angles(R=config.source.joint_angles[0], Z=config.source.joint_angles[1], P=config.source.joint_angles[2], Y=config.source.joint_angles[3])
-            self.jog("Z", 1000) # height moved up after tap TODO: make constant value? 1000?
+            self.move_joint_angles(
+                R=locations[source].joint_angles[0], 
+                Z=locations[source].joint_angles[1], 
+                P=locations[source].joint_angles[2], 
+                Y=locations[source].joint_angles[3],
+            )
+            self.jog("Z", 1000) # height moved up after tap 
             self.gripper_open()
-            self.jog("Z", -1000 + height_offset) # move same distance back down, plus size of plate TODO: add plate dimensions
-        else:
+            self.jog("Z", -1000 + plate_definitions[plate_type].grip_height + height_offset) # move down to grab height location
+        
+        else: # if source_type == nest:
             self.gripper_open()
-            self.move_joint_angles(R=config.source.joint_angles[0], Z=config.source.joint_angles[1], P=config.source.joint_angles[2], Y=config.source.joint_angles[3])
-            # self.move_location(source)
+            self.move_joint_angles(
+                R=locations[source].joint_angles[0], 
+                Z=locations[source].joint_angles[1] + plate_definitions[plate_type].grip_height, # TODO: this doesn't account for if the trnasfer is a lid.....
+                P=locations[source].source.joint_angles[2], 
+                Y=locations[source].source.joint_angles[3],
+            )
+            
         self.gripper_close()
 
-        if is_lid: 
+        if incremental_lift: 
             self.jog("Z", 100)
             self.jog("Z", 100)
             self.jog("Z", 100)
@@ -614,8 +631,8 @@ class PlateCrane:
         current_pos = self.get_position()
         self.move_joints_neutral() # TODO change to config
         # self.move_single_axis("R", target)
-        self.move_joint_angles(R=config.target.joint_angles[0], Z=current_pos[1], P=current_pos[2], Y=current_pos[3])
-        self.move_joint_angles(R=config.target.joint_angles[0], Z=config.target.joint_angles[1], P=config.target.joint_angles[2], Y=config.target.joint_angles[3])
+        self.move_joint_angles(R=resource_defs.target.joint_angles[0], Z=current_pos[1], P=current_pos[2], Y=current_pos[3])
+        self.move_joint_angles(R=resource_defs.target.joint_angles[0], Z=resource_defs.target.joint_angles[1], P=resource_defs.target.joint_angles[2], Y=resource_defs.target.joint_angles[3])
         # self.move_location(target)
         self.gripper_open()
         self.move_tower_neutral() # TODO: change
@@ -636,7 +653,7 @@ class PlateCrane:
         """
         try:
             # location = eval(location) # replacing with checking config
-            from config import location
+            from platecrane_driver.resource_defs import location
         except NameError:
             # Location was given as a location name
             print(name + ": " + location)
@@ -672,7 +689,7 @@ class PlateCrane:
         """
         # self.get_new_plate_height(plate_type) # pulls plate dimenstions, now do from config
         #TODO: pull plate dimenstions?
-        plate_height = config.plate_type.plate_height
+        plate_height = resource_defs.plate_type.plate_height
 
         target_offset = (
             2 * self.plate_above_height - self.plate_pick_steps_stack + self.lid_destination_height
@@ -789,10 +806,10 @@ class PlateCrane:
         self,
         source: str,
         target: str,
-        source_type: str = "stack",
-        target_type: str = "stack",
+        plate_type: str,
+        # source_type: str = "stack",
+        # target_type: str = "stack",
         height_offset: int = 0,
-        plate_type: str = None,
         incremental_lift: bool = False,
         use_safe_approach: bool = False
     ) -> None:
@@ -809,33 +826,74 @@ class PlateCrane:
         :return: None
         """
 
-        # self.get_stack_resource() # doesn't do anything
-        if plate_type:
-        #     self.get_new_plate_height(plate_type) # TODO: replace with pulling plate dimenstions from config (or just do later as needed), for now just putting plate type in global
-            self.plate_type = plate_type
-        # if source_type == "stack" or target_type == "stack":
-        #     self.stack_transfer(source, target, source_type, target_type, height_offset, incremental_lift)
-        # elif source_type == "module" and target_type == "module":
-        #     self.module_transfer(source, target, height_offset)
+        # # self.get_stack_resource() # doesn't do anything
+        # if plate_type:
+        # #     self.get_new_plate_height(plate_type) # TODO: replace with pulling plate dimenstions from config (or just do later as needed), for now just putting plate type in global
+        #     self.plate_type = plate_type
+        # # if source_type == "stack" or target_type == "stack":
+        # #     self.stack_transfer(source, target, source_type, target_type, height_offset, incremental_lift)
+        # # elif source_type == "module" and target_type == "module":
+        # #     self.module_transfer(source, target, height_offset)
 
+        # Extract the source and target location_types
+        source_type = locations[source].location_type
+        target_type = locations[target].location_type
 
+        # is safe approach required for source and/or target?
+        source_use_safe_approach = False if locations[source].safe_approach_height == 0 else True
+        target_use_safe_approach = False if locations[target].safe_approach_height == 0 else True
+
+        # TESTING
+        print(source_type)
+        print(target_type)
+
+        # Grab from source location: 
         if source_type == "stack":
-            self.stack_pick(source, height_offset, incremental_lift)
-        else:
-            self.nest_pick(source, height_offset, incremental_lift, use_safe_approach)
+            self.stack_pick(
+                source=source, 
+                source_type=source_type, 
+                plate_type=plate_type, 
+                height_offset=height_offset, 
+                incremental_lift=incremental_lift
+            )
+        elif source_type == "nest": 
+            self.nest_pick(
+                source=source, 
+                plate_type=plate_type, 
+                height_offset=height_offset, 
+                incremental_lift=incremental_lift, 
+                use_safe_approach=source_use_safe_approach
+            )
+        else: 
+            raise Exception(
+                "Source location type not defined correctly"
+            )
+
+        # Place at target location: 
         if target_type == "stack":
-            self.stack_place(target, target_type, height_offset, incremental_lift)
-        else:
-            self.nest_place(target, target_type, height_offset, incremental_lift, use_safe_approach)
+            self.stack_place(target, target_type, plate_type, height_offset, incremental_lift)
+        elif target_type == "nest":
+            self.nest_place(target, target_type, plate_type, height_offset, incremental_lift, target_use_safe_approach)
+        else: 
+            raise Exception(
+                "Target location type not defined correctly"
+            )
 
         self.move_joints_neutral()
-        self.move_joint_angles(R=config.safe.joint_angles[0], Z=config.safe.joint_angles[1], P=config.safe.joint_angles[2], Y=config.safe.joint_angles[3])
+        self.move_joint_angles(
+            R=locations["Safe"].joint_angles[0], 
+            Z=locations["Safe"].joint_angles[1], 
+            P=locations["Safe"].joint_angles[2], 
+            Y=locations["Safe"].joint_angles[3]
+        )
 
         # self.update_stack_resource()  #TODO: does nothing, could be nice preventing slamming
 
     def stack_pick(
         self,
-        source: str = None,
+        source: str,
+        source_type: str,
+        plate_type: str,
         height_offset: int = 0,
         incremental_lift: bool = False,
     ) -> None:
@@ -865,7 +923,13 @@ class PlateCrane:
         #     source_loc[3],
         # )
         # self.pick_plate_direct(stack_source, "stack", height_offset=height_offset, is_lid=incremental_lift)
-        self.pick_plate_direct(source, "stack", height_offset=height_offset, is_lid=incremental_lift)
+        self.pick_plate_direct(
+            source=source, 
+            source_type=source_type, 
+            plate_type=plate_type, 
+            height_offset=height_offset, 
+            incremental_lift=incremental_lift
+        )
 
 
     def stack_place(
@@ -897,7 +961,7 @@ class PlateCrane:
             self.place_plate_direct(target, height_offset=height_offset)
 
 
-    def nest_pick(self, source: str, height_offset: int = 0, use_safe_approach: bool = False) -> None:
+    def nest_pick(self, source: str, plate_type: str, height_offset: int = 0, incremental_lift: bool = False, use_safe_approach: bool = False) -> None:
             """
             Transfer a plate in between two modules using source and target locations
 
@@ -909,13 +973,18 @@ class PlateCrane:
             :return: None
             """
             self.move_joints_neutral()
-            source = self._is_location_joint_values(location=source, name="source")
-
+            #source = self._is_location_joint_values(location=source, name="source")
             
             if use_safe_approach:
-                self.pick_plate_safe_approach(source, height_offset)
+                self.pick_plate_safe_approach(source, plate_type, height_offset)
             else:
-                self.pick_plate_direct(source, "nest", height_offset)
+                self.pick_plate_direct(
+                    source=source, 
+                    source_type="nest",
+                    plate_type=plate_type,
+                    height_offset=height_offset, 
+                    incremental_lift=incremental_lift,
+                )
 
     def nest_place(self, target: str, height_offset: int = 0, use_safe_approach: bool = False) -> None:
             """
