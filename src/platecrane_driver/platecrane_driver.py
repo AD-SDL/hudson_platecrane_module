@@ -485,63 +485,85 @@ class PlateCrane:
         self.move_arm_neutral()
         self.move_tower_neutral()
 
-    def move_nest_approach(self, 
-        location: str, 
-        plate_type: str,
-    ) -> None:
-        """Moves to the entry location of the location that is given. It moves the R,P and Z joints step by step to aviod collisions.
+    # def move_nest_approach(self, 
+    #     location: str, 
+    #     plate_type: str,
+    #     grip_height_in_steps: int,
+    # ) -> None:
+    #     """Moves to the entry location of the location that is given. It moves the R,P and Z joints step by step to aviod collisions.
 
-        :param source: Name of the source location.
-        :type source: str
-        :param height_jog_steps: Number of jogging steps that will be used to move the Z axis to the plate location
-        :type height_jog_steps: int
-        :raises [PlateCraneLocationException]: [Error for None type locations]
-        :return: None
-        """
-        # TODO:Handle the error raising within error_codes.py
+    #     :param source: Name of the source location.
+    #     :type source: str
+    #     :param height_jog_steps: Number of jogging steps that will be used to move the Z axis to the plate location
+    #     :type height_jog_steps: int
+    #     :raises [PlateCraneLocationException]: [Error for None type locations]
+    #     :return: None
+    #     """
+    #     # TODO:Handle the error raising within error_codes.py
 
-        # if not location:
-        #     raise Exception(
-        #         "PlateCraneLocationException: NoneType variable is not compatible as a location"
-        #     )
+    #     # if not location:
+    #     #     raise Exception(
+    #     #         "PlateCraneLocationException: NoneType variable is not compatible as a location"
+    #     #     )
 
-        # R axis already rotated to location
+    #     # Rotate base (R axis) toward plate location
+    #     current_pos = self.get_position()
+    #     self.move_joint_angles(
+    #         R=locations[location].joint_angles[0], 
+    #         Z=current_pos[1],
+    #         P=current_pos[2],
+    #         Y=current_pos[3],
+    #     )
 
-        # Lower z axis to safe_approach_z height
-        current_pos = self.get_position()
-        self.move_joint_angles(
-            R=current_pos[0], 
-            Z=locations[plate_type].safe_approach_height,
-            P=current_pos[2],
-            Y=current_pos[3],
-        )
+    #     # Lower z axis to safe_approach_z height
+    #     current_pos = self.get_position()
+    #     self.move_joint_angles(
+    #         R=current_pos[0], 
+    #         Z=locations[plate_type].safe_approach_height,
+    #         P=current_pos[2],
+    #         Y=current_pos[3],
+    #     )
 
-        # extend arm above plate
-        current_pos = self.get_position()
-        self.move_joint_angles(
-            R=current_pos[0], 
-            Z=current_pos[1],
-            P=location[location] # TODO add in the p joint values here!!!! 
-        )
+    #     # extend arm over plate and rotate gripper to correct orientation 
+    #     current_pos = self.get_position()
+    #     self.move_joint_angles(
+    #         R=current_pos[0], 
+    #         Z=current_pos[1],
+    #         P=locations[location].joint_angles[2], 
+    #         Y=locations[location].joint_angles[3],
+    #     )
+
+    #     # lower arm (z axis) to correct plate grip height
+    #     current_pos = self.get_position()
+    #     self.move_joint_angles(
+    #         R=current_pos[0], 
+    #         Z=locations[location].joint_angles[1] + grip_height_in_steps,
+    #         P=current_pos[2],
+    #         Y=current_pos[3],
+    #     )
+
+        
 
 
 
-         # get joint values of given location
-        joint_values = resource_defs.location.joint_angles
-        current_pos = self.get_position() # get joint values of current position
 
-        self.plate_above_height = resource_defs.location.safe_approach_height
-        module_safe_height = joint_values[1] + self.plate_above_height
-        self.module_safe_height = module_safe_height
 
-        height_jog_steps = current_pos[1] - module_safe_height # first step of safe approach
+    #      # get joint values of given location
+    #     joint_values = resource_defs.location.joint_angles
+    #     current_pos = self.get_position() # get joint values of current position
 
-        self.move_joint_angles(R=resource_defs.location.joint_angles[0], Z=current_pos[1], P=current_pos[2], Y=current_pos[3])
-        # self.move_single_axis("R", location) # TODO: adjust to use config instead of values stored in platecrane
-        current_pos = self.get_position() # get joint values of current position
-        self.move_joint_angles(R=current_pos[0], Z=current_pos[1], P=resource_defs.location.joint_angles[2], Y=current_pos[3])
-        # self.move_single_axis("P", location)
-        self.jog("Z", -height_jog_steps)
+    #     self.plate_above_height = resource_defs.location.safe_approach_height
+    #     module_safe_height = joint_values[1] + self.plate_above_height
+    #     self.module_safe_height = module_safe_height
+
+    #     height_jog_steps = current_pos[1] - module_safe_height # first step of safe approach
+
+    #     self.move_joint_angles(R=resource_defs.location.joint_angles[0], Z=current_pos[1], P=current_pos[2], Y=current_pos[3])
+    #     # self.move_single_axis("R", location) # TODO: adjust to use config instead of values stored in platecrane
+    #     current_pos = self.get_position() # get joint values of current position
+    #     self.move_joint_angles(R=current_pos[0], Z=current_pos[1], P=resource_defs.location.joint_angles[2], Y=current_pos[3])
+    #     # self.move_single_axis("P", location)
+    #     self.jog("Z", -height_jog_steps)
 
     def pick_plate_safe_approach(
         self, 
@@ -558,24 +580,72 @@ class PlateCrane:
         :raises [PlateCraneLocationException]: [Error for None type locations]
         :return: None
         """
-        # if not source:
-        #     raise Exception(
-        #         "PlateCraneLocationException: NoneType variable is not compatible as a location"
-        #     )
+
+        # MOVE TO PICK UP PLATE
         self.move_joints_neutral()
         self.gripper_open()
 
-        self.move_nest_approach(source, plate_type)
+        # Rotate base (R axis) toward plate location
         current_pos = self.get_position()
-        self.move_joint_angles(R=current_pos[0], Z=current_pos[1], P=current_pos[2], Y=resource_defs.source.joint_angless[3])
+        self.move_joint_angles(
+            R=locations[source].joint_angles[0], 
+            Z=current_pos[1],
+            P=current_pos[2],
+            Y=current_pos[3],
+        )
 
-        # self.move_single_axis("Y", source)
-        # self.jog("Z", -(self.plate_pick_steps_module - height_offset))
-        self.jog("Z", (resource_defs.source.joint_angles[1] - self.module_safe_height + height_offset)) #TODO: test, replace height offset
+        # Lower z axis to safe_approach_z height
+        current_pos = self.get_position()
+        self.move_joint_angles(
+            R=current_pos[0], 
+            Z=locations[plate_type].safe_approach_height,
+            P=current_pos[2],
+            Y=current_pos[3],
+        )
+
+        # extend arm over plate and rotate gripper to correct orientation 
+        current_pos = self.get_position()
+        self.move_joint_angles(
+            R=current_pos[0], 
+            Z=current_pos[1],
+            P=locations[source].joint_angles[2], 
+            Y=locations[source].joint_angles[3],
+        )
+
+        # lower arm (z axis) to correct plate grip height
+        current_pos = self.get_position()
+        self.move_joint_angles(
+            R=current_pos[0], 
+            Z=locations[source].joint_angles[1] + grip_height_in_steps,
+            P=current_pos[2],
+            Y=current_pos[3],
+        )
+
+        # grip the plate
         self.gripper_close()
-        self.jog("Z", resource_defs.source.safe_approach_height)
 
+        # MOVE WITH PLATE SAFELY BACK TO NEUTRAL
+        # Move arm up to safe approach height
+        current_pos = self.get_position()
+        self.move_joint_angles(
+            R=current_pos[0], 
+            Z=locations[source].safe_approach_height,
+            P=current_pos[2],
+            Y=current_pos[3],
+        )
+
+        # retract arm (Y axis) as much as possible (to same Y axis value as Safe location)
+        current_pos = self.get_position()
+        self.move_joint_angles(
+            R=current_pos[0], 
+            Z=current_pos[1],
+            P=current_pos[2],
+            Y=locations["Safe"].joint_angles[3],
+        )
+
+        # move rest of joints to neutral location
         self.move_arm_neutral()
+
 
     def place_plate_safe_approach(
         self, target: str, height_offset: int = 0
@@ -674,8 +744,8 @@ class PlateCrane:
             self.move_joint_angles(
                 R=locations[source].joint_angles[0], 
                 Z=locations[source].joint_angles[1] + grip_height_in_steps, 
-                P=locations[source].source.joint_angles[2], 
-                Y=locations[source].source.joint_angles[3],
+                P=locations[source].joint_angles[2], 
+                Y=locations[source].joint_angles[3],
             )
             
         self.gripper_close()
@@ -690,22 +760,52 @@ class PlateCrane:
         self.move_tower_neutral()
         self.move_arm_neutral()
 
-    def place_plate_direct(self, target: str = None, height_offset: int = 0) -> None:
+    def place_plate_direct(
+            self, 
+            target: str,
+            grip_height_in_steps: str, 
+        ) -> None:
+
         """Place a stack plate either onto the exhange location or into a stack
 
         :param target: Name of the target location. Defults to None if target is None, it will be set to exchange location.
         :type target: str
         :return: None
         """
-        current_pos = self.get_position()
-        self.move_joints_neutral() # TODO change to config
-        # self.move_single_axis("R", target)
-        self.move_joint_angles(R=resource_defs.target.joint_angles[0], Z=current_pos[1], P=current_pos[2], Y=current_pos[3])
-        self.move_joint_angles(R=resource_defs.target.joint_angles[0], Z=resource_defs.target.joint_angles[1], P=resource_defs.target.joint_angles[2], Y=resource_defs.target.joint_angles[3])
-        # self.move_location(target)
-        self.gripper_open()
-        self.move_tower_neutral() # TODO: change
+
         self.move_arm_neutral()
+
+        # Rotate base (R axis) to target location
+        current_pos = self.get_position()
+        self.move_joint_angles(
+            R=locations[target].joint_angles[0],
+            Z=current_pos[1],
+            P=current_pos[2],
+            Y=current_pos[3],
+        )
+
+        # Extend arm over plate location (Y axis) and rotate gripper to correct orientation (P axis)
+        current_pos = self.get_position()
+        self.move_joint_angles(
+            R=current_pos[0],
+            Z=current_pos[1],
+            P=locations[target].joint_angles[2],
+            Y=locations[target].joint_angles[3],
+        )
+
+        # Lower arm (z axis) to plate grip height
+        current_pos=self.get_position()
+        self.move_joint_angles(
+            R=current_pos[0],
+            Z=locations[target].joint_angles[1] + grip_height_in_steps,
+            P=current_pos[2],
+            Y=current_pos[3],
+        )
+
+        self.gripper_close()
+
+        self.move_tower_neutral()
+        self.move_joints_neutral()
 
     def _is_location_joint_values(self, location: str, name: str = "temp") -> str:
         """
@@ -952,22 +1052,33 @@ class PlateCrane:
                 #height_offset=height_offset, 
                 grip_height_in_steps=grip_height_in_steps,
                 incremental_lift=incremental_lift, 
-                use_safe_approach=source_use_safe_approach
+                use_safe_approach=source_use_safe_approach,
             )
         else: 
             raise Exception(
                 "Source location type not defined correctly"
             )
+        
 
-        # Place at target location: 
-        if target_type == "stack":
-            self.stack_place(target, target_type, plate_type, height_offset, incremental_lift)
-        elif target_type == "nest":
-            self.nest_place(target, target_type, plate_type, height_offset, incremental_lift, target_use_safe_approach)
+        # PLACE PLATE
+        if target_type == "stack": 
+            self.stack_place(
+                target=target,
+                grip_height_in_steps=grip_height_in_steps,
+            )
+        elif target_type == "nest": 
+            self.nest_pick(
+                target=target, 
+                target_type=target_type,
+                plate_type=plate_type,
+                grip_height_in_steps=grip_height_in_steps,
+                use_safe_approach=target_use_safe_approach,
+            )
         else: 
             raise Exception(
                 "Target location type not defined correctly"
             )
+
 
         self.move_joints_neutral()
         self.move_joint_angles(
@@ -1028,8 +1139,8 @@ class PlateCrane:
 
     def stack_place(
         self,
-        target: str = None,
-        height_offset: int = 0,
+        target: str,
+        grip_height_in_steps: str,
     ) -> None:
         """
         Transfer a plate plate from a plate stack to the exchange location or make a transfer in between stacks and stack entry locations
@@ -1042,24 +1153,17 @@ class PlateCrane:
         :return: None
         """
         
-        # target_loc = self.get_location_joint_values(target)
-        # stack_target = "target_loc"
-        # self.set_location(
-        #     stack_target,
-        #     target_loc[0],
-        #     target_loc[1],
-        #     target_loc[2],
-        #     target_loc[3],
-        # )
-        # self.place_plate_direct(stack_target, height_offset=height_offset)
-        self.place_plate_direct(target, height_offset=height_offset)
+        # TODO: Do we even need this funtion? 
+        self.place_plate_direct(
+            target=target, 
+            grip_height_in_steps=grip_height_in_steps,
+        )
 
 
     def nest_pick(
         self, 
         source: str, 
-        plate_type: str, 
-        # height_offset: int = 0, 
+        plate_type: str,  
         grip_height_in_steps: int,
         incremental_lift: bool = False, 
         use_safe_approach: bool = False
@@ -1092,26 +1196,108 @@ class PlateCrane:
                 incremental_lift=incremental_lift,
             )
 
-    def nest_place(self, target: str, height_offset: int = 0, use_safe_approach: bool = False) -> None:
-            """
-            Transfer a plate in between two modules using source and target locations
+    def nest_place(
+        self, 
+        target: str,
+        target_type: str,
+        plate_type: str,
+        grip_height_in_steps: int, 
+        use_safe_approach: bool = False
+    ) -> None:
+        """
+        Transfer a plate in between two modules using source and target locations
 
-            :param source: Source location, provided as either a location name or 4 joint values.
-            :type source: str
-            :param target: Target location, provided as either a location name or 4 joint values.
-            :type target: str
-            :raises [ErrorType]: [ErrorDescription]
-            :return: None
-            """
-            self.move_joints_neutral()
-            target = self._is_location_joint_values(location=target, name="target")
+        :param source: Source location, provided as either a location name or 4 joint values.
+        :type source: str
+        :param target: Target location, provided as either a location name or 4 joint values.
+        :type target: str
+        :raises [ErrorType]: [ErrorDescription]
+        :return: None
+        """
 
-            if use_safe_approach:
-                self.place_plate_safe_approach(target, height_offset)
-            else:
-                self.place_plate_direct(target, height_offset)
+        # Rotate base (R axix) toward target location
+        current_pos = self.get_position()
+        self.move_joint_angles(
+            R=locations[target].joint_angles[0],
+            Z=current_pos[1],
+            P=current_pos[2],
+            Y=current_pos[3],
+        )
+
+        if use_safe_approach: 
+            # Lower z axis to safe_approach_z height
+            current_pos = self.get_position()
+            self.move_joint_angles(
+                R=current_pos[0], 
+                Z=locations[plate_type].safe_approach_height,
+                P=current_pos[2],
+                Y=current_pos[3],
+            )
+
+            # extend arm over plate and rotate gripper to correct orientation 
+            current_pos = self.get_position()
+            self.move_joint_angles(
+                R=current_pos[0], 
+                Z=current_pos[1],
+                P=locations[target].joint_angles[2], 
+                Y=locations[target].joint_angles[3],
+            )
+
+            # lower arm (z axis) to correct plate grip height
+            current_pos = self.get_position()
+            self.move_joint_angles(
+                R=current_pos[0], 
+                Z=locations[target].joint_angles[1] + grip_height_in_steps,
+                P=current_pos[2],
+                Y=current_pos[3],
+            )
+
+            self.gripper_open()
+
+            # Back away using safe approach path
+            current_pos = self.get_position()
+            self.move_joint_angles(
+                R=current_pos[0], 
+                Z=locations[target].safe_approach_height,
+                P=current_pos[2],
+                Y=current_pos[3],
+            )
+
+            # retract arm (Y axis) as much as possible (to same Y axis value as Safe location)
+            current_pos = self.get_position()
+            self.move_joint_angles(
+                R=current_pos[0], 
+                Z=current_pos[1],
+                P=current_pos[2],
+                Y=locations["Safe"].joint_angles[3],
+            )
+
+        else: 
+            # extend arm over plate and rotate gripper to correct orientation 
+            current_pos = self.get_position()
+            self.move_joint_angles(
+                R=current_pos[0], 
+                Z=current_pos[1],
+                P=locations[target].joint_angles[2], 
+                Y=locations[target].joint_angles[3],
+            )
+
+            # lower arm (z axis) to correct plate grip height
+            current_pos = self.get_position()
+            self.move_joint_angles(
+                R=current_pos[0], 
+                Z=locations[target].joint_angles[1] + grip_height_in_steps,
+                P=current_pos[2],
+                Y=current_pos[3],
+            )
+
+            self.gripper_open()
 
 
+        self.move_tower_neutral()
+        self.move_arm_neutral()
+
+        
 if __name__ == "__main__":
     """
     Runs given function.
