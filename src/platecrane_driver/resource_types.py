@@ -38,6 +38,6 @@ class PlateResource(BaseModel):
     def convert_to_steps(plate_measurement_in_mm: float) -> int: 
         """Converts plate measurements in mm to PlateCrane EX motor steps on the z-axis  """
         steps_per_mm = 80.5
-        steps = (plate_measurement_in_mm * steps_per_mm).round()
+        steps = int(plate_measurement_in_mm * steps_per_mm)
         return steps
 
