@@ -4,10 +4,15 @@ import re
 from pathlib import Path
 import time
 
-#from platecrane_driver.serial_port import SerialPort      # use when running through wei/REST clients
-from serial_port import SerialPort   # use when running through driver
-from resource_defs import locations, plate_definitions
-from resource_types import PlateResource
+from platecrane_driver.serial_port import SerialPort      # use when running through wei/REST clients
+from platecrane_driver.resource_defs import locations, plate_definitions
+from platecrane_driver.resource_types import PlateResource
+
+# from serial_port import SerialPort      # when running through the drive
+# from resource_defs import locations, plate_definitions
+# from resource_types import PlateResource
+
+
 
 #import platecrane_driver.resource_defs as resource_defs
 

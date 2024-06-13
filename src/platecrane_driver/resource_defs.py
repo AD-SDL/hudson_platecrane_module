@@ -1,5 +1,5 @@
-from resource_types import Location, PlateResource
-#from platecrane_driver.resource_types import Location, PlateResource
+#from resource_types import Location, PlateResource
+from platecrane_driver.resource_types import Location, PlateResource  # through WEI
 
 # Locations accessible by the PlateCrane EX
 locations = {

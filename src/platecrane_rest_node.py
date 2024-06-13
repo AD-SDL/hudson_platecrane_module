@@ -218,10 +218,12 @@ def do_action(action_handle: str, action_vars):
     print("Source location: " + str(source))
     target = action_args.get("target")
     print("Target location: " + str(target))
-    plate_type = action_args.get("plate_type", "flat_bottom_96")   
+    plate_type = action_args.get("plate_type")   
     print("Plate type: " + str(plate_type))
     height_offset = action_args.get("height_offset", 0)
     print("Height Offset: " + str(height_offset))
+    has_lid = action_args.get("has_lid", False)
+    print("Has Lid: " + str(bool(has_lid)))
 
     if action_handle == "transfer":
         print("Starting the transfer request")
@@ -240,10 +242,9 @@ def do_action(action_handle: str, action_vars):
             platecrane.transfer(
                 source,
                 target,
-                # source_type=source_type.lower(),
-                # target_type=target_type.lower(),
-                height_offset=int(height_offset),
                 plate_type=plate_type,
+                height_offset=int(height_offset),
+                has_lid=has_lid,
             )
         except Exception as err:
             response.action_response = StepStatus.FAILED
