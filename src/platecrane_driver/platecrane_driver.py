@@ -4,13 +4,13 @@ import re
 from pathlib import Path
 import time
 
-from platecrane_driver.serial_port import SerialPort      # use when running through WEI REST clients
-from platecrane_driver.resource_defs import locations, plate_definitions
-from platecrane_driver.resource_types import PlateResource
+# from platecrane_driver.serial_port import SerialPort      # use when running through WEI REST clients
+# from platecrane_driver.resource_defs import locations, plate_definitions
+# from platecrane_driver.resource_types import PlateResource
 
-# from serial_port import SerialPort      # use when running through the driver
-# from resource_defs import locations, plate_definitions
-# from resource_types import PlateResource
+from serial_port import SerialPort      # use when running through the driver
+from resource_defs import locations, plate_definitions
+from resource_types import PlateResource
 
 
 # TODOs: 
@@ -173,11 +173,11 @@ class PlateCrane:
         """
         Requests and stores plate_crane position.
         Coordinates:
-        Z: Vertical axis
         R: Base turning axis
-        Y: Extension axis
+        Z: Vertical axis
         P: Gripper turning axis
-
+        Y: Extension axis
+        
         :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
         :type [ParamName]: [ParamType](, optional)
         ...
@@ -193,12 +193,15 @@ class PlateCrane:
 
         try: 
             # collect coordinates of current position
-            current_position = list(self.__serial_port.send_command(command).split(" "))
+            # time.sleep(2)
+            current_position = list(self.__serial_port.send_command(command,1).split(" "))
+            print(current_position)
             current_position = [eval(x.strip(",")) for x in current_position]
+            print(current_position)
         except Exception: 
             print("Overlapping serial responses detected. Waiting 5 seconds to resend latest command")
             time.sleep(5)
-            current_position = list(self.__serial_port.send_command(command).split(" "))
+            current_position = list(self.__serial_port.send_command(command,1).split(" "))
             current_position = [eval(x.strip(",")) for x in current_position]
 
         return current_position
@@ -342,7 +345,7 @@ class PlateCrane:
         command = "MOVE TEMP\r\n"
 
         try:
-            self.__serial_port.send_command(command)
+            self.__serial_port.send_command(command, 2)
 
         except Exception as err:
             print(err)
@@ -654,7 +657,7 @@ class PlateCrane:
         
         else: # if source_type == nest:
             self.gripper_open()
-
+        
             self.move_joint_angles(
                 R=locations[source].joint_angles[0], 
                 Z=locations[source].joint_angles[1] + grip_height_in_steps, 
