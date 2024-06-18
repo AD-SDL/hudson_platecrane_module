@@ -18,6 +18,13 @@ from platecrane_driver.resource_types import PlateResource
 # fine tune (z height) of all positions
 # edit all the doc strings to match new functions
 # should we be using error_codes.py to be doing some of the error checking/raising
+# Fix two references to dev/ttyUSB number. is it 2 or 4?
+
+# Crash error outputs 21(R axis),14(z axis), 02 Wrong location name. 1400 (Z axis hits the plate), 00 success
+# TODO: Need a response handler function. Unkown error messages T1, ATS, TU these are about connection issues (multiple access?)
+# TODO: Slow the arm before hitting the plate in pick_stack_plate
+# TODO: Create a plate detect function within pick stack plate function
+# TODO: Maybe write another pick stack funtion to remove the plate detect movement
 
 
 class PlateCrane:
@@ -76,8 +83,8 @@ class PlateCrane:
     def home(self, timeout=28):
         """Homes all of the axes. Returns to neutral position (above exchange)
 
-        :param timeout: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
+        :param timeout: Seconds to wait for plate crane response after sending serial command, defaults to 28 seconds.
+        :type timeout: int, optional
         ...
         :raises [ErrorType]: [ErrorDescription]
         ...
@@ -845,7 +852,7 @@ class PlateCrane:
         :param incremental_lift: If True will slowly raise after gripping at source (Only used if transfer function is called from remove lid function)
         :type incremental_lift: bool
         :raises [ErrorType]: [ErrorDescription]     # TODO
-        :return: None                               # TODO
+        :return: None                               
         """
 
         # Extract the source and target location_types
@@ -929,60 +936,5 @@ if __name__ == "__main__":
     s = PlateCrane("/dev/ttyUSB4")
     # s.initialize()
     # s.home()
-    stack4 = "Stack4"
-    stack5 = "Stack5"
-    solo6 = "Solo.Position6"
-    solo4 = "Solo.Position4"
-    solo3 = "Solo.Position3"
-    target_loc = "HidexNest2"
-    lidnest3 = "LidNest3"
-    sealer = "SealerNest"
-    # s.move_location("Safe")
-
-# TESTING
-# s.pick_stack_plate("Stack1")
-# a = s.get_position()
-# s.set_location("LidNest3",R=231449,Z=-31500,P=484,Y=-306)
-
-# s.set_location("Hidex.Nest",R=a[0],Z=a[1],P=a[2],Y=a[3])
-# s.place_module_plate("Hidex.Nest")
-# s.move_single_axis("Z","Hidex.Nest")
-# s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="stack",height_offset=800)
-# s.transfer("Stack1", "PeelerNest",source_type="stack",target_type="stack")
-
-# s.place_module_plate()
-# s.get_location_list()
-
-# s.move_joints_neutral()
-# s.move_single_axis("R", "Safe", delay_time=1)
-# s.set_location("Safe",R=195399,Z=0,P=0,Y=0)
-# s.set_location("LidNest2",R=131719,Z=-31001,P=-5890,Y=-315)
-# s.transfer(source="LidNest1",target="LidNest2",source_type="stack",target_type="stack", plate_type="96_well")
-
-# s.transfer(source="LidNest2",target="LidNest3",source_type="stack",target_type="stack", plate_type="96_well")
-# s.transfer("Stack1","Stack1")
-# s.free_joints()
-# s.lock_joints()
-
-# s.set_location("LidNest3",R=99817,Z=-31001,P=-5890,Y=-315)
-
-# s.get_location_joint_values("HidexNest2")
-# s.set_location("HidexNest2", R=210015,Z=-30400,P=490,Y=2323)
-
-# s.transfer(stack5, solo4, source_type = "stack", target_type = "module", plate_type = "96_deep_well")
-# s.transfer(solo4, stack5, source_type = "module", target_type = "stack", plate_type = "96_deep_well")
-
-# s.remove_lid(source = "LidNest1", target="LidNest2", plate_type="96_well")
-# s.transfer("Stack4", solo3, source_type = "stack", target_type = "stack", plate_type = "tip_box_lid_off")
-# s.remove_lid(source = solo6, target="LidNest3", plate_type="tip_box_lid_on")
-# s.replace_lid(source = "LidNest3", target = solo6, plate_type = "tip_box_lid_on")
-# s.replace_lid(source = "LidNest2", target = solo4, plate_type = "96_well")
-# s.transfer(solo4, stack5, source_type = "module", target_type = "stack", plate_type = "96_well")
-# s.transfer(solo6, "Stack2", source_type = "module", target_type = "stack", plate_type = "tip_box_lid_on")
 
 
-#    Crash error outputs 21(R axis),14(z axis), 02 Wrong location name. 1400 (Z axis hits the plate), 00 success
-# TODO: Need a response handler function. Unkown error messages T1, ATS, TU these are about connection issues (multiple access?)
-# TODO: Slow the arm before hitting the plate in pick_stack_plate
-# TODO: Create a plate detect function within pick stack plate function
-# TODO: Maybe write another pick stack funtion to remove the plate detect movement
