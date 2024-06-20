@@ -1,7 +1,7 @@
-from resource_types import Location, PlateResource
-# from platecrane_driver.resource_types import Location, PlateResource  # through WEI
+# from resource_types import Location, PlateResource  # when testing through driver
+from platecrane_driver.resource_types import Location, PlateResource  # through WEI
 
-# Locations accessible by the PlateCrane EX
+# Locations accessible by the PlateCrane EX. [R (base), Z (vertical axis), P (gripper rotation), Y (arm extension)]
 locations = {
     "Safe": Location(name="Safe", joint_angles=[182220, 2500, 460, -308], location_type="nest", safe_approach_height=0),
     "Stack1": Location(name="Stack1", joint_angles=[164672, -32703, 472, 5389], location_type="stack", safe_approach_height=0),
@@ -27,4 +27,4 @@ plate_definitions = {
     "pcr_96well": PlateResource(plate_height = 0, grip_height=0, plate_height_with_lid=0, lid_height=0, lid_grip_height=0, lid_removal_grip_height=0),
 }
 
-# R, Z, P, Y
+

@@ -4,77 +4,56 @@ import re
 from pathlib import Path
 import time
 
-# from platecrane_driver.serial_port import SerialPort      # use when running through WEI REST clients
-# from platecrane_driver.resource_defs import locations, plate_definitions
-# from platecrane_driver.resource_types import PlateResource
+from platecrane_driver.serial_port import SerialPort      # use when running through WEI REST clients
+from platecrane_driver.resource_defs import locations, plate_definitions
+from platecrane_driver.resource_types import PlateResource
 
-from serial_port import SerialPort      # use when running through the driver
-from resource_defs import locations, plate_definitions
-from resource_types import PlateResource
+# from serial_port import SerialPort      # use when running through the driver
+# from resource_defs import locations, plate_definitions
+# from resource_types import PlateResource
 
-
+"""
 # TODOs: 
-# look into how to slow speed of stack pick and place
-# fine tune (z height) of all positions
-# edit all the doc strings to match new functions
-# should we be using error_codes.py to be doing some of the error checking/raising
-# Fix two references to dev/ttyUSB number. is it 2 or 4?
+    * combine two initialization functions
+    * Look into how to slow speed of stack pick and place
+    * should we be using error_codes.py to be doing some of the error checking/raising
 
-# Crash error outputs 21(R axis),14(z axis), 02 Wrong location name. 1400 (Z axis hits the plate), 00 success
-# TODO: Need a response handler function. Unkown error messages T1, ATS, TU these are about connection issues (multiple access?)
-# TODO: Slow the arm before hitting the plate in pick_stack_plate
-# TODO: Create a plate detect function within pick stack plate function
-# TODO: Maybe write another pick stack funtion to remove the plate detect movement
-
+    * Crash error outputs 21(R axis),14(z axis), 02 Wrong location name. 1400 (Z axis hits the plate), 00 success
+    * Need a response handler function. Unknown error messages T1, ATS, TU these are about connection issues (multiple access?)
+    * Maybe create a plate detect function within pick stack plate function
+"""
 
 class PlateCrane:
-    """
-    Description:
-    Python interface that allows remote commands to be executed to the plate_crane.
-    """
+    """ Python interface that allows remote commands to be executed to the plate_crane."""
 
     __serial_port: SerialPort
 
-    def __init__(self, host_path="/dev/ttyUSB2", baud_rate=9600):
-        """[Summary]
+    def __init__(self, host_path="/dev/ttyUSB4", baud_rate=9600):
+        """Initialization function
 
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
+        Args: 
+            host_path (str): usb path of PlateCrane EX device
+            baud_rate (int): baud rate to use for communication with the PlateCrane EX device
+
+        Returns: 
+            None
         """
 
+        # define variables
         self.__serial_port = SerialPort(host_path=host_path, baud_rate=baud_rate)
         self.robot_error = "NO ERROR"
         self.status = 0
         self.error = ""
 
-
         self.robot_status = ""
         self.movement_state = "READY"
         self.platecrane_current_position = None
 
-        # self.stack_resources = json.load(
-        #     open(Path(__file__).parent / "stack_resources.json")
-        # )
-
+        # initialize actions
         self.initialize()
 
     def initialize(self):
-        """[Summary]
-
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
-        """
-
+        """Initialization actions"""
         self.get_status()
         if self.robot_status == "0":
             self.home()
@@ -83,32 +62,19 @@ class PlateCrane:
     def home(self, timeout=28):
         """Homes all of the axes. Returns to neutral position (above exchange)
 
-        :param timeout: Seconds to wait for plate crane response after sending serial command, defaults to 28 seconds.
-        :type timeout: int, optional
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
+        Args: 
+            timeout (int): Seconds to wait for plate crane response after sending serial command, defaults to 28 seconds.
+        
+        Returns: 
+            None
         """
 
         # Moves axes to home position
         command = "HOME\r\n"
         self.__serial_port.send_command(command, timeout)
 
-
     def get_status(self):
-        """Checks status of plate_crane
-
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
-        """
-
+        """Checks status of plate_crane"""
         command = "STATUS\r\n"
         self.robot_status = self.__serial_port.send_command(command)
 
@@ -123,16 +89,7 @@ class PlateCrane:
         self.__serial_port.send_command(command)
 
     def get_location_list(self):
-        """Checks status of plate_crane
-
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
-        """
+        """Displays all location information stored in the Plate Crane EX robot's memory"""
 
         command = "LISTPOINTS\r\n"
         out_msg = self.__serial_port.send_command(command)
@@ -151,15 +108,23 @@ class PlateCrane:
 
 
     def get_location_joint_values(self, location: str = None) -> list:
-        """Checks status of plate_crane
+        """Returns list of 4 joint values associated with a position name
 
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
+        Note: right now this returns the joint values stored in the 
+            PlateCrane EX device memory, not the locations stored in
+            resource_defs.py
+
+        TODO: delete this function or associate it with resource_defs.py
+
+        Args: 
+            location (str): Name of location 
+
+        Returns: 
+            joint_values ([int]): [R, Z, P, Y] joint values
+                - R (base rotation)
+                - Z (arm vertical axis)
+                - P (gripper rotation)
+                - Y (arm extension)
         """
 
         command = "GETPOINT " + location + "\r\n"
@@ -170,36 +135,29 @@ class PlateCrane:
         return joint_values
 
     def get_position(self) -> list:
-        """
-        Requests and stores plate_crane position.
-        Coordinates:
-        R: Base turning axis
-        Z: Vertical axis
-        P: Gripper turning axis
-        Y: Extension axis
+        """Returns list of joint values for current position of the PlateCrane EX arm
         
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
+        Args: 
+            None
+        
+        Returns: 
+            current_position ([int]): [R, Z, P, Y] joint values
+                - R (base rotation)
+                - Z (arm vertical axis)
+                - P (gripper rotation)
+                - Y (arm extension)
         """
 
         command = "GETPOS\r\n"
 
-        # time.sleep(2)  # helps to reduce serial port overlapping responses
-
         try: 
             # collect coordinates of current position
-            # time.sleep(2)
             current_position = list(self.__serial_port.send_command(command,1).split(" "))
             print(current_position)
             current_position = [eval(x.strip(",")) for x in current_position]
             print(current_position)
         except Exception: 
-            print("Overlapping serial responses detected. Waiting 5 seconds to resend latest command")
+            # Fall back: overlapping serial responses were detected. Wait 5 seconds then resend latest command
             time.sleep(5)
             current_position = list(self.__serial_port.send_command(command,1).split(" "))
             current_position = [eval(x.strip(",")) for x in current_position]
@@ -214,15 +172,17 @@ class PlateCrane:
         P: int = 0,
         Y: int = 0,
     ):
-        """Saves a new location onto robot
+        """Saves a new location into PlateCrane EX device memory
 
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
+        Args: 
+            location_name (str): Name of location to be saved
+            R (int): base rotation (units: motor steps)
+            Z (int): vertical axis (units: motor steps)
+            P (int): gripper rotation (units: motor steps)
+            Y (int): arm extension (units: motor steps)
+       
+        Returns: 
+            None
         """
 
         command = "LOADPOINT %s, %s, %s, %s, %s\r\n" % (
@@ -235,15 +195,13 @@ class PlateCrane:
         self.__serial_port.send_command(command)
 
     def delete_location(self, location_name: str = None):
-        """Deletes a location from the robot's database
+        """Deletes an existing location from the PlateCrane EX device memory
 
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
+        Args: 
+        location_name (str): Name of location to delete 
+
+        Returns: 
+            None
         """
         if not location_name:
             raise Exception("No location name provided")
@@ -254,61 +212,25 @@ class PlateCrane:
         self.__serial_port.send_command(command)
 
     def gripper_open(self):
-        """Opens gripper
-
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
-        """
+        """Opens gripper"""
 
         command = "OPEN\r\n"  
         self.__serial_port.send_command(command)
     
     def gripper_close(self):
-        """Closes gripper
-
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
-        """
+        """Closes gripper"""
 
         command = "CLOSE\r\n" 
         self.__serial_port.send_command(command)
 
     def check_open(self):
-        """Checks if gripper is open
-
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
-        """
+        """Checks if gripper is open"""
 
         command = "GETGRIPPERISOPEN\r\n" 
         self.__serial_port.send_command(command)
 
     def check_closed(self):
-        """Checks if gripper is closed
-
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
-        """
+        """Checks if gripper is closed"""
 
         command = "GETGRIPPERISCLOSED\r\n"  
         self.__serial_port.send_command(command)
@@ -316,32 +238,28 @@ class PlateCrane:
     def jog(self, axis, distance) -> None:
         """Moves the specified axis the specified distance.
 
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
+        Args: 
+            axis (str): "R", "Z", "P", or "Y"
+            distance (int): distance to move along the axis (units = motor steps)
+
+        Returns: 
+            None
         """
 
         command = "JOG %s,%d\r\n" % (axis, distance)
         self.__serial_port.send_command(command, timeout=1.5)
 
     def move_joint_angles(self, R: int, Z: int, P: int, Y: int) -> None:
-        """Moves on a single axis, using an existing location on robot's database
+        """Move to a specified location
 
-        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
-        :type [ParamName]: [ParamType](, optional)
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: [ReturnDescription]
-        :rtype: [ReturnType]
+        Args: 
+            R (int): base rotation (unit = motor steps)
+            Z (int): vertical axis (unit = motor steps)
+            P (int): gripper rotation (unit = motor steps)
+            Y (int): arm extension (unit = motor steps)
         """
 
         self.set_location("TEMP", R, Z, P, Y)
-
         command = "MOVE TEMP\r\n"
 
         try:
@@ -357,18 +275,25 @@ class PlateCrane:
         self.delete_location("TEMP")
 
     def move_single_axis(self, axis: str, loc: str, delay_time=1.5) -> None:
-        """Moves on a single axis using an existing location on robot's database
+        """Moves on a single axis, using an existing location in PlateCrane EX device memory as reference
 
-        :param axis: Axis name (R,Z,P,Y)
-        :type axis: str
-        :param loc: Name of the location.
-        :type loc: str
+        Args: 
+            axis (str): axis to move along
+            loc (str): name of location in PlateCrane EX device memory to use as reference
+            delay_time (float): serial command timeout. Seconds to wait before expecting a serial response
+                defaults to 1.5 seconds
 
-        :raises [PlateCraneLocationException]: [Error for None type locations]
-        :return: None
+        Raises: 
+            TODO
+        
+        Returns: 
+            None
+
+        TODO: 
+            * Handle errors using error_codes.py
+            * Reference locations in resource_defs.py, not device memory
         """
 
-        # TODO:Handle the error raising within error_codes.py
         if not loc:
             raise Exception(
                 "PlateCraneLocationException: NoneType variable is not compatible as a location"
@@ -381,15 +306,17 @@ class PlateCrane:
     def move_location(self, loc: str = None, move_time: float = 4.7) -> None:
         """Moves all joint to the given location.
 
-        :param loc: Name of the location.
-        :type loc: str
-        :param move_time: Number of seconds that will take to complete this movement. Defaults to 4.7 seconds which is the longest possible movement time.
-        :type move_time: float
-        :raises [PlateCraneLocationException]: [Error for None type locations]
-        :return: None
-        """
+        Args: 
+            loc (str): location to move to
+            move_time (float): serial command timeout. Seconds to wait before expecting a serial response
+                defaults to 4.7 seconds
 
-        # TODO:Handle the error raising within error_codes.py
+        Returns: 
+            None 
+
+        TODO: 
+            * Handle the error raising within error_codes.py
+        """
         if not loc:
             raise Exception(
                 "PlateCraneLocationException: NoneType variable is not compatible as a location"
@@ -401,10 +328,11 @@ class PlateCrane:
     def move_tower_neutral(self) -> None:
         """Moves the tower to neutral position
 
-        :return: None
+        TODO: 
+            * This still creates a TEMP position, moves to it, then deletes it after. 
+                Change this, and other related methods below, to use only access 
+                locations in resource_defs
         """
-        
-        # TODO: This still creates a TEMP position, moves to it, then deletes it after
         current_pos = self.get_position()
         self.move_joint_angles(
             R=current_pos[0],
@@ -414,10 +342,8 @@ class PlateCrane:
         )
 
     def move_arm_neutral(self) -> None:
-        """Moves the arm to neutral position
+        """Moves the arm to neutral position"""
 
-        :return: None
-        """
         current_pos = self.get_position()
         self.move_joint_angles(
             R=current_pos[0],
@@ -427,11 +353,8 @@ class PlateCrane:
         )
 
     def move_gripper_neutral(self) -> None:
-        """Moves the gripper to neutral position
-
-        :return: None
-        """
-        # TODO: this still accesses plate crane intenal safe 
+        """Moves the gripper to neutral position"""
+        
         self.move_single_axis("P", "Safe", delay_time=0.3)
 
         current_pos = self.get_position()
@@ -443,10 +366,7 @@ class PlateCrane:
         )
 
     def move_joints_neutral(self) -> None:
-        """Moves all joints neutral position
-
-        :return: None
-        """
+        """Moves all joints neutral position"""
         self.move_arm_neutral()
         self.move_tower_neutral()
 
@@ -456,14 +376,15 @@ class PlateCrane:
         plate_type: str,
         grip_height_in_steps: int, 
     ) -> None:
-        """Pick a module plate from a module location.
+        """Picks a plate from a source type "nest" using a safe travel path. 
 
-        :param source: Name of the source location.
-        :type source: str
-        :param height_jog_steps: Number of jogging steps that will be used to move the Z axis to the plate location
-        :type height_jog_steps: int
-        :raises [PlateCraneLocationException]: [Error for None type locations]
-        :return: None
+        Args: 
+            source (str): source location name defined in resource_defs.py
+            plate_type (str): plate definition name defined in resource_defs.py
+            grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate
+
+        Returns: 
+            None
         """
 
         # open the gripper
@@ -534,14 +455,15 @@ class PlateCrane:
         target: str, 
         grip_height_in_steps: int,
     ) -> None:
-        """Place a module plate onto a module location.
+        """Places a plate to a target location of type "nest" using a safe travel path.
 
-        :param target: Name of the target location.
-        :type target: str
-        :param height_jog_steps: Number of jogging steps that will be used to move the Z axis to the plate location
-        :type height_jog_steps: int
-        :raises [PlateCraneLocationException]: [Error for None type locations]
-        :return: None
+        Args: 
+            target (str): source location name defined in resource_defs.py
+            plate_type (str): plate definition name defined in resource_defs.py
+            grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate
+
+        Returns: 
+            None
         """
 
         # Rotate base (R axis) toward target location
@@ -601,6 +523,7 @@ class PlateCrane:
             Y=locations["Safe"].joint_angles[3],
         )
 
+        # move arm to safe location
         self.move_tower_neutral()
         self.move_arm_neutral()
 
@@ -613,12 +536,25 @@ class PlateCrane:
             has_lid: bool,
             incremental_lift: bool=False
     ) -> None:
-        """Pick a stack plate from stack location.
+        """Picks a plate from a source location of type either "nest" or "stack" using a direct travel path
 
-        :param source: Name of the source location.
-        :type source: str
-        :raises [PlateCraneLocationException]: [Error for None type locations]
-        :return: None
+        "nest" transfers: gripper open, direct to grab plate z height
+        "stack" transfers: gripper closed, touch top of plate, z up, z down to correct grab plate height
+
+        Args: 
+            source (str): source location name defined in resource_defs.py
+            source_type (str): either "nest" or "stack"
+            plate_type (str): plate definition name defined in resource_defs.py
+            grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate
+            has_lid (bool): True if plate has lid, False otherwise
+            incremental_lift (bool): True if you want to use incremental lift, False otherwise (default False)
+                incremental lift (good for ensuring lids are removed gently and correctly): 
+                    - grab plate at grip_height_in_steps
+                    - raise 100 steps along z axis (repeat 5x)
+                    - continue with rest of transfer
+
+        Returns: 
+            None
         """
 
         # Rotate R axis (base rotation) over the plate
@@ -631,9 +567,9 @@ class PlateCrane:
         )
 
         if source_type == "stack":
+            # close the gripper
             self.gripper_close()
 
-            # TODO: Should we be extending the arm first, then dropping it?
             # tap arm on top of plate stack to determine stack height
             self.move_joint_angles(
                 R=locations[source].joint_angles[0], 
@@ -664,7 +600,8 @@ class PlateCrane:
                 P=locations[source].joint_angles[2], 
                 Y=locations[source].joint_angles[3],
             )
-            
+        
+        # open the gripper
         self.gripper_close()
 
         if incremental_lift: 
@@ -674,6 +611,7 @@ class PlateCrane:
             self.jog("Z", 100)
             self.jog("Z", 100)
 
+        # return arm to safe location
         self.move_tower_neutral()
         self.move_arm_neutral()
 
@@ -684,12 +622,19 @@ class PlateCrane:
             target_type: str,   # TODO: use later to slow speed for target_type = "stack"
             grip_height_in_steps: str, 
         ) -> None:
+        """Places a plate onto a target location of type either "nest" or "stack" using a direct travel path
 
-        """Place a stack plate either onto the exhange location or into a stack
+        Args: 
+            target (str): target location name defined in resource_defs.py
+            target_type (str): either "nest" or "stack"
+            plate_type (str): plate definition name defined in resource_defs.py
+            grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate
 
-        :param target: Name of the target location. Defults to None if target is None, it will be set to exchange location.
-        :type target: str
-        :return: None
+        Returns: 
+            None
+
+        TODO: 
+            * use target_type variable to slow approach in "stack" transfers to avoid striking other plates
         """
 
         # Rotate base (R axis) to target location
@@ -726,16 +671,12 @@ class PlateCrane:
 
     def _is_location_joint_values(self, location: str, name: str = "temp") -> str:
         """
-        If the location was provided as joint values, transfer joint values into a saved location on the robot and return the location name.
-        If location parameter is a name of an already saved location, do nothing.
+        If the location was provided as joint values, transfer joint values into a saved location 
+        on the robot and return the location name. If location parameter is a name of an already saved 
+        location, do nothing.
 
-        :param location: Location to be checked if this is an already saved location on the robot database or a new location with 4 joint values
-        :type location: string
-        :param name: Location name to be used to save a new location if the location parameter was provided as 4 joint values
-        :type name: string
-        :raises [ErrorType]: [ErrorDescription]
-        :return: location_name = Returns the location name that is saved on robot database with location joint values
-        :rtype: str
+        TODO: 
+            * Is there any reason we should keep this function?
         """
         try:
             # location = eval(location) # replacing with checking config
@@ -761,22 +702,24 @@ class PlateCrane:
         plate_type: str,
         height_offset: int = 0,
     ) -> None:
-        """
-        Remove the plate lid
+        """Removes lid from a plate at source location and places lid at target location
 
-        :param source: Source location, provided as either a location name or 4 joint values.
-        :type source: str
-        :param target: Target location, provided as either a location name or 4 joint values.
-        :type target: str
-        :param plate_type: Type of the plate
-        :type plate_type: str
-        :raises [ErrorType]: [ErrorDescription]
-        :return: None
+        Args: 
+            source (str): source location name defined in resource_defs.py
+            target (str): target location name defined in resource_defs.py
+            plate_type (str): plate definition name defined in resource_defs.py
+            height_offset (int): change in z height to be applied to grip location on the lid (units = mm)
+                defaults to 0mm
+
+        Returns: 
+            None
         """
 
+        # Calculate grip height in motor steps 
         source_grip_height_in_steps = PlateResource.convert_to_steps(plate_definitions[plate_type].lid_removal_grip_height + height_offset)
         target_grip_height_in_steps = PlateResource.convert_to_steps(plate_definitions[plate_type].plate_height_with_lid - plate_definitions[plate_type].lid_height + height_offset)
 
+        # Pass to transfer function but specify that it is a lid we're transferring 
         self.transfer(
             source=source,
             target=target,
@@ -795,22 +738,23 @@ class PlateCrane:
         plate_type: str,
         height_offset: int = 0,
     ) -> None:
-        """
-        Replace the lid back to the plate
+        """"Replaces lid at source location onto a plate at the target location
 
-        :param source: Source location, provided as either a location name or 4 joint values.
-        :type source: str
-        :param target: Target location, provided as either a location name or 4 joint values.
-        :type target: str
-        :param plate_type: Type of the plate
-        :type plate_type: str
-        :raises [ErrorType]: [ErrorDescription]
-        :return: None
-        """
+        Args: 
+            source (str): source location name defined in resource_defs.py
+            target (str): target location name defined in resource_defs.py
+            plate_type (str): plate definition name defined in resource_defs.py
+            height_offset (int): change in z height to be applied to grip location on the lid (units = mm)
+                defaults to 0mm
 
+        Returns: 
+            None
+        """
+        # Calculate grip height in motor steps
         source_grip_height_in_steps = PlateResource.convert_to_steps(plate_definitions[plate_type].lid_grip_height + height_offset)
         target_grip_height_in_steps = PlateResource.convert_to_steps(plate_definitions[plate_type].lid_removal_grip_height + height_offset)
 
+        # Pass to transfer function but specify that it is a lid we're transferring 
         self.transfer(
             source=source,
             target=target,
@@ -833,29 +777,35 @@ class PlateCrane:
         target_grip_height_in_steps: int = None,  # if removing/replacing lid
         incremental_lift: bool = False,
     ) -> None:
-        """
-        Handles the transfer request
+        """Handles the transfer request
 
-        :param source: Source location, provided as a location name from the locations dictionary.
-        :type source: str
-        :param target: Target location, provided as a location name from the locations dictionary.
-        :type target: str
-        :param plate_type: Type of the plate
-        :type plate_type: str
-        :param height_offset: Height in mm to be applied to default plate grip height. 
-        :type height_offset: int (units = mm)
-        :param is_lid: True if transferring a lid, False otherwise
-        :type is_lid: bool
-        :param has_lid: True if the plate being transferred has a lid, False otherwise
-        :type has_lid: bool
-        :param source_grip_height_in_steps: Height at which to grip plate at source (Only used if transfer function is called from remove/replace lid functions)
-        :type source_grip_height_in_steps: int
-        :param target_grip_height_in_steps: Height at which to grip plate at target (Only used if transfer function is called from remove/replace lid functions)
-        :type target_grip_height_in_steps: int
-        :param incremental_lift: If True will slowly raise after gripping at source (Only used if transfer function is called from remove lid function)
-        :type incremental_lift: bool
-        :raises [ErrorType]: [ErrorDescription]     # TODO
-        :return: None                               
+        Args: 
+            source (str): source location name defined in resource_defs.py
+            target (str): target location name defined in resource_defs.py
+            plate_type (str): plate definition name defined in resource_defs.py
+            height_offset (int): change in z height to be applied to grip location on the lid (units = mm)
+                defaults to 0mm 
+            is_lid (bool): True if transferring a lid, False otherwise
+                defaults to False
+            has_lid (bool): True if plate being transferred has a lid, otherwise False
+                defaults to False
+            source_grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate at source location
+                defaults to None
+                only used if transfer function is called from remove/replace_lid functions
+            target_grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate at target location
+                defaults to None
+                only used if transfer function is called from remove/replace_lid functions
+            incremental_lift (bool): True if you want to use incremental lift, False otherwise (default False)
+                incremental lift (good for ensuring lids are removed gently and correctly): 
+                    - grab plate at grip_height_in_steps
+                    - raise 100 steps along z axis (repeat 5x)
+                    - continue with rest of transfer
+
+        Raises: 
+            TODO
+        
+        Returns: 
+            None                            
         """
 
         # Extract the source and target location_types
@@ -937,7 +887,6 @@ if __name__ == "__main__":
     Runs given function.
     """
     s = PlateCrane("/dev/ttyUSB4")
-    # s.initialize()
-    # s.home()
+
 
 
