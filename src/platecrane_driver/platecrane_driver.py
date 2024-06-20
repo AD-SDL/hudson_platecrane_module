@@ -1,19 +1,20 @@
 """Handle Proper Interfacing with the PlateCrane"""
-import json
+
 import re
-from pathlib import Path
 import time
 
-from platecrane_driver.serial_port import SerialPort      # use when running through WEI REST clients
 from platecrane_driver.resource_defs import locations, plate_definitions
 from platecrane_driver.resource_types import PlateResource
+from platecrane_driver.serial_port import (
+    SerialPort,  # use when running through WEI REST clients
+)
 
 # from serial_port import SerialPort      # use when running through the driver
 # from resource_defs import locations, plate_definitions
 # from resource_types import PlateResource
 
 """
-# TODOs: 
+# TODOs:
     * combine two initialization functions
     * Look into how to slow speed of stack pick and place
     * should we be using error_codes.py to be doing some of the error checking/raising
@@ -23,19 +24,20 @@ from platecrane_driver.resource_types import PlateResource
     * Maybe create a plate detect function within pick stack plate function
 """
 
+
 class PlateCrane:
-    """ Python interface that allows remote commands to be executed to the plate_crane."""
+    """Python interface that allows remote commands to be executed to the plate_crane."""
 
     __serial_port: SerialPort
 
     def __init__(self, host_path="/dev/ttyUSB4", baud_rate=9600):
         """Initialization function
 
-        Args: 
+        Args:
             host_path (str): usb path of PlateCrane EX device
             baud_rate (int): baud rate to use for communication with the PlateCrane EX device
 
-        Returns: 
+        Returns:
             None
         """
 
@@ -62,10 +64,10 @@ class PlateCrane:
     def home(self, timeout=28):
         """Homes all of the axes. Returns to neutral position (above exchange)
 
-        Args: 
+        Args:
             timeout (int): Seconds to wait for plate crane response after sending serial command, defaults to 28 seconds.
-        
-        Returns: 
+
+        Returns:
             None
         """
 
@@ -106,20 +108,19 @@ class PlateCrane:
             print("Error in get_status")
             self.robot_error = err
 
-
     def get_location_joint_values(self, location: str = None) -> list:
         """Returns list of 4 joint values associated with a position name
 
-        Note: right now this returns the joint values stored in the 
+        Note: right now this returns the joint values stored in the
             PlateCrane EX device memory, not the locations stored in
             resource_defs.py
 
         TODO: delete this function or associate it with resource_defs.py
 
-        Args: 
-            location (str): Name of location 
+        Args:
+            location (str): Name of location
 
-        Returns: 
+        Returns:
             joint_values ([int]): [R, Z, P, Y] joint values
                 - R (base rotation)
                 - Z (arm vertical axis)
@@ -136,11 +137,11 @@ class PlateCrane:
 
     def get_position(self) -> list:
         """Returns list of joint values for current position of the PlateCrane EX arm
-        
-        Args: 
+
+        Args:
             None
-        
-        Returns: 
+
+        Returns:
             current_position ([int]): [R, Z, P, Y] joint values
                 - R (base rotation)
                 - Z (arm vertical axis)
@@ -150,16 +151,20 @@ class PlateCrane:
 
         command = "GETPOS\r\n"
 
-        try: 
+        try:
             # collect coordinates of current position
-            current_position = list(self.__serial_port.send_command(command,1).split(" "))
+            current_position = list(
+                self.__serial_port.send_command(command, 1).split(" ")
+            )
             print(current_position)
             current_position = [eval(x.strip(",")) for x in current_position]
             print(current_position)
-        except Exception: 
+        except Exception:
             # Fall back: overlapping serial responses were detected. Wait 5 seconds then resend latest command
             time.sleep(5)
-            current_position = list(self.__serial_port.send_command(command,1).split(" "))
+            current_position = list(
+                self.__serial_port.send_command(command, 1).split(" ")
+            )
             current_position = [eval(x.strip(",")) for x in current_position]
 
         return current_position
@@ -174,14 +179,14 @@ class PlateCrane:
     ):
         """Saves a new location into PlateCrane EX device memory
 
-        Args: 
+        Args:
             location_name (str): Name of location to be saved
             R (int): base rotation (units: motor steps)
             Z (int): vertical axis (units: motor steps)
             P (int): gripper rotation (units: motor steps)
             Y (int): arm extension (units: motor steps)
-       
-        Returns: 
+
+        Returns:
             None
         """
 
@@ -197,52 +202,50 @@ class PlateCrane:
     def delete_location(self, location_name: str = None):
         """Deletes an existing location from the PlateCrane EX device memory
 
-        Args: 
-        location_name (str): Name of location to delete 
+        Args:
+        location_name (str): Name of location to delete
 
-        Returns: 
+        Returns:
             None
         """
         if not location_name:
             raise Exception("No location name provided")
 
-        command = "DELETEPOINT %s\r\n" % (
-            location_name
-        )  
+        command = "DELETEPOINT %s\r\n" % (location_name)
         self.__serial_port.send_command(command)
 
     def gripper_open(self):
         """Opens gripper"""
 
-        command = "OPEN\r\n"  
+        command = "OPEN\r\n"
         self.__serial_port.send_command(command)
-    
+
     def gripper_close(self):
         """Closes gripper"""
 
-        command = "CLOSE\r\n" 
+        command = "CLOSE\r\n"
         self.__serial_port.send_command(command)
 
     def check_open(self):
         """Checks if gripper is open"""
 
-        command = "GETGRIPPERISOPEN\r\n" 
+        command = "GETGRIPPERISOPEN\r\n"
         self.__serial_port.send_command(command)
 
     def check_closed(self):
         """Checks if gripper is closed"""
 
-        command = "GETGRIPPERISCLOSED\r\n"  
+        command = "GETGRIPPERISCLOSED\r\n"
         self.__serial_port.send_command(command)
 
     def jog(self, axis, distance) -> None:
         """Moves the specified axis the specified distance.
 
-        Args: 
+        Args:
             axis (str): "R", "Z", "P", or "Y"
             distance (int): distance to move along the axis (units = motor steps)
 
-        Returns: 
+        Returns:
             None
         """
 
@@ -252,7 +255,7 @@ class PlateCrane:
     def move_joint_angles(self, R: int, Z: int, P: int, Y: int) -> None:
         """Move to a specified location
 
-        Args: 
+        Args:
             R (int): base rotation (unit = motor steps)
             Z (int): vertical axis (unit = motor steps)
             P (int): gripper rotation (unit = motor steps)
@@ -277,19 +280,19 @@ class PlateCrane:
     def move_single_axis(self, axis: str, loc: str, delay_time=1.5) -> None:
         """Moves on a single axis, using an existing location in PlateCrane EX device memory as reference
 
-        Args: 
+        Args:
             axis (str): axis to move along
             loc (str): name of location in PlateCrane EX device memory to use as reference
             delay_time (float): serial command timeout. Seconds to wait before expecting a serial response
                 defaults to 1.5 seconds
 
-        Raises: 
+        Raises:
             TODO
-        
-        Returns: 
+
+        Returns:
             None
 
-        TODO: 
+        TODO:
             * Handle errors using error_codes.py
             * Reference locations in resource_defs.py, not device memory
         """
@@ -306,15 +309,15 @@ class PlateCrane:
     def move_location(self, loc: str = None, move_time: float = 4.7) -> None:
         """Moves all joint to the given location.
 
-        Args: 
+        Args:
             loc (str): location to move to
             move_time (float): serial command timeout. Seconds to wait before expecting a serial response
                 defaults to 4.7 seconds
 
-        Returns: 
-            None 
+        Returns:
+            None
 
-        TODO: 
+        TODO:
             * Handle the error raising within error_codes.py
         """
         if not loc:
@@ -328,17 +331,17 @@ class PlateCrane:
     def move_tower_neutral(self) -> None:
         """Moves the tower to neutral position
 
-        TODO: 
-            * This still creates a TEMP position, moves to it, then deletes it after. 
-                Change this, and other related methods below, to use only access 
+        TODO:
+            * This still creates a TEMP position, moves to it, then deletes it after.
+                Change this, and other related methods below, to use only access
                 locations in resource_defs
         """
         current_pos = self.get_position()
         self.move_joint_angles(
             R=current_pos[0],
             Z=locations["Safe"].joint_angles[1],
-            P=current_pos[2], 
-            Y=current_pos[3]
+            P=current_pos[2],
+            Y=current_pos[3],
         )
 
     def move_arm_neutral(self) -> None:
@@ -348,20 +351,20 @@ class PlateCrane:
         self.move_joint_angles(
             R=current_pos[0],
             Z=current_pos[1],
-            P=current_pos[2], 
+            P=current_pos[2],
             Y=locations["Safe"].joint_angles[3],
         )
 
     def move_gripper_neutral(self) -> None:
         """Moves the gripper to neutral position"""
-        
+
         self.move_single_axis("P", "Safe", delay_time=0.3)
 
         current_pos = self.get_position()
         self.move_joint_angles(
             R=current_pos[0],
             Z=current_pos[1],
-            P=locations, 
+            P=locations,
             Y=current_pos[3],
         )
 
@@ -371,19 +374,19 @@ class PlateCrane:
         self.move_tower_neutral()
 
     def pick_plate_safe_approach(
-        self, 
-        source: str, 
+        self,
+        source: str,
         plate_type: str,
-        grip_height_in_steps: int, 
+        grip_height_in_steps: int,
     ) -> None:
-        """Picks a plate from a source type "nest" using a safe travel path. 
+        """Picks a plate from a source type "nest" using a safe travel path.
 
-        Args: 
+        Args:
             source (str): source location name defined in resource_defs.py
             plate_type (str): plate definition name defined in resource_defs.py
             grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate
 
-        Returns: 
+        Returns:
             None
         """
 
@@ -393,7 +396,7 @@ class PlateCrane:
         # Rotate base (R axis) toward plate location
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=locations[source].joint_angles[0], 
+            R=locations[source].joint_angles[0],
             Z=current_pos[1],
             P=current_pos[2],
             Y=current_pos[3],
@@ -402,25 +405,25 @@ class PlateCrane:
         # Lower z axis to safe_approach_z height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=locations[plate_type].safe_approach_height,
             P=current_pos[2],
             Y=current_pos[3],
         )
 
-        # extend arm over plate and rotate gripper to correct orientation 
+        # extend arm over plate and rotate gripper to correct orientation
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=current_pos[1],
-            P=locations[source].joint_angles[2], 
+            P=locations[source].joint_angles[2],
             Y=locations[source].joint_angles[3],
         )
 
         # Lower arm (z axis) to correct plate grip height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=locations[source].joint_angles[1] + grip_height_in_steps,
             P=current_pos[2],
             Y=current_pos[3],
@@ -432,7 +435,7 @@ class PlateCrane:
         # Move arm with plate back to safe approach height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=locations[source].safe_approach_height,
             P=current_pos[2],
             Y=current_pos[3],
@@ -441,7 +444,7 @@ class PlateCrane:
         # retract arm (Y axis) as much as possible (to same Y axis value as Safe location)
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=current_pos[1],
             P=current_pos[2],
             Y=locations["Safe"].joint_angles[3],
@@ -451,18 +454,18 @@ class PlateCrane:
         self.move_arm_neutral()
 
     def place_plate_safe_approach(
-        self, 
-        target: str, 
+        self,
+        target: str,
         grip_height_in_steps: int,
     ) -> None:
         """Places a plate to a target location of type "nest" using a safe travel path.
 
-        Args: 
+        Args:
             target (str): source location name defined in resource_defs.py
             plate_type (str): plate definition name defined in resource_defs.py
             grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate
 
-        Returns: 
+        Returns:
             None
         """
 
@@ -478,25 +481,25 @@ class PlateCrane:
         # Lower z axis to safe_approach_z height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=locations[target].safe_approach_height,
             P=current_pos[2],
             Y=current_pos[3],
         )
 
-        # extend arm over plate and rotate gripper to correct orientation 
+        # extend arm over plate and rotate gripper to correct orientation
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=current_pos[1],
-            P=locations[target].joint_angles[2], 
+            P=locations[target].joint_angles[2],
             Y=locations[target].joint_angles[3],
         )
 
         # lower arm (z axis) to correct plate grip height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=locations[target].joint_angles[1] + grip_height_in_steps,
             P=current_pos[2],
             Y=current_pos[3],
@@ -508,7 +511,7 @@ class PlateCrane:
         # Back away using safe approach path
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=locations[target].safe_approach_height,
             P=current_pos[2],
             Y=current_pos[3],
@@ -517,7 +520,7 @@ class PlateCrane:
         # retract arm (Y axis) as much as possible (to same Y axis value as Safe location)
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=current_pos[1],
             P=current_pos[2],
             Y=locations["Safe"].joint_angles[3],
@@ -528,41 +531,41 @@ class PlateCrane:
         self.move_arm_neutral()
 
     def pick_plate_direct(
-            self, 
-            source: str, 
-            source_type: str, 
-            plate_type: str, 
-            grip_height_in_steps: int,
-            has_lid: bool,
-            incremental_lift: bool=False
+        self,
+        source: str,
+        source_type: str,
+        plate_type: str,
+        grip_height_in_steps: int,
+        has_lid: bool,
+        incremental_lift: bool = False,
     ) -> None:
         """Picks a plate from a source location of type either "nest" or "stack" using a direct travel path
 
         "nest" transfers: gripper open, direct to grab plate z height
         "stack" transfers: gripper closed, touch top of plate, z up, z down to correct grab plate height
 
-        Args: 
+        Args:
             source (str): source location name defined in resource_defs.py
             source_type (str): either "nest" or "stack"
             plate_type (str): plate definition name defined in resource_defs.py
             grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate
             has_lid (bool): True if plate has lid, False otherwise
             incremental_lift (bool): True if you want to use incremental lift, False otherwise (default False)
-                incremental lift (good for ensuring lids are removed gently and correctly): 
+                incremental lift (good for ensuring lids are removed gently and correctly):
                     - grab plate at grip_height_in_steps
                     - raise 100 steps along z axis (repeat 5x)
                     - continue with rest of transfer
 
-        Returns: 
+        Returns:
             None
         """
 
         # Rotate R axis (base rotation) over the plate
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=locations[source].joint_angles[0], 
-            Z=current_pos[1], 
-            P=current_pos[2], 
+            R=locations[source].joint_angles[0],
+            Z=current_pos[1],
+            P=current_pos[2],
             Y=current_pos[3],
         )
 
@@ -572,39 +575,49 @@ class PlateCrane:
 
             # tap arm on top of plate stack to determine stack height
             self.move_joint_angles(
-                R=locations[source].joint_angles[0], 
-                Z=locations[source].joint_angles[1], 
-                P=locations[source].joint_angles[2], 
+                R=locations[source].joint_angles[0],
+                Z=locations[source].joint_angles[1],
+                P=locations[source].joint_angles[2],
                 Y=locations[source].joint_angles[3],
             )
 
             # Move up, open gripper, grab plate at correct height
-            self.jog("Z", 1000) 
+            self.jog("Z", 1000)
             self.gripper_open()
 
             # Calculate z travel from grip height with/without lid
-            if has_lid: 
-                z_jog_down_from_plate_top = PlateResource.convert_to_steps(plate_definitions[plate_type].plate_height_with_lid) - grip_height_in_steps
-            else: 
-                z_jog_down_from_plate_top = PlateResource.convert_to_steps(plate_definitions[plate_type].plate_height) - grip_height_in_steps
+            if has_lid:
+                z_jog_down_from_plate_top = (
+                    PlateResource.convert_to_steps(
+                        plate_definitions[plate_type].plate_height_with_lid
+                    )
+                    - grip_height_in_steps
+                )
+            else:
+                z_jog_down_from_plate_top = (
+                    PlateResource.convert_to_steps(
+                        plate_definitions[plate_type].plate_height
+                    )
+                    - grip_height_in_steps
+                )
 
-            # Move down to correct z height to grip plate 
+            # Move down to correct z height to grip plate
             self.jog("Z", -(1000 + z_jog_down_from_plate_top))
-        
-        else: # if source_type == nest:
+
+        else:  # if source_type == nest:
             self.gripper_open()
-        
+
             self.move_joint_angles(
-                R=locations[source].joint_angles[0], 
-                Z=locations[source].joint_angles[1] + grip_height_in_steps, 
-                P=locations[source].joint_angles[2], 
+                R=locations[source].joint_angles[0],
+                Z=locations[source].joint_angles[1] + grip_height_in_steps,
+                P=locations[source].joint_angles[2],
                 Y=locations[source].joint_angles[3],
             )
-        
+
         # open the gripper
         self.gripper_close()
 
-        if incremental_lift: 
+        if incremental_lift:
             self.jog("Z", 100)
             self.jog("Z", 100)
             self.jog("Z", 100)
@@ -615,25 +628,24 @@ class PlateCrane:
         self.move_tower_neutral()
         self.move_arm_neutral()
 
-
     def place_plate_direct(
-            self, 
-            target: str,
-            target_type: str,   # TODO: use later to slow speed for target_type = "stack"
-            grip_height_in_steps: str, 
-        ) -> None:
+        self,
+        target: str,
+        target_type: str,  # TODO: use later to slow speed for target_type = "stack"
+        grip_height_in_steps: str,
+    ) -> None:
         """Places a plate onto a target location of type either "nest" or "stack" using a direct travel path
 
-        Args: 
+        Args:
             target (str): target location name defined in resource_defs.py
             target_type (str): either "nest" or "stack"
             plate_type (str): plate definition name defined in resource_defs.py
             grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate
 
-        Returns: 
+        Returns:
             None
 
-        TODO: 
+        TODO:
             * use target_type variable to slow approach in "stack" transfers to avoid striking other plates
         """
 
@@ -656,7 +668,7 @@ class PlateCrane:
         )
 
         # Lower arm (z axis) to plate grip height
-        current_pos=self.get_position()
+        current_pos = self.get_position()
         self.move_joint_angles(
             R=current_pos[0],
             Z=locations[target].joint_angles[1] + grip_height_in_steps,
@@ -671,11 +683,11 @@ class PlateCrane:
 
     def _is_location_joint_values(self, location: str, name: str = "temp") -> str:
         """
-        If the location was provided as joint values, transfer joint values into a saved location 
-        on the robot and return the location name. If location parameter is a name of an already saved 
+        If the location was provided as joint values, transfer joint values into a saved location
+        on the robot and return the location name. If location parameter is a name of an already saved
         location, do nothing.
 
-        TODO: 
+        TODO:
             * Is there any reason we should keep this function?
         """
         try:
@@ -704,22 +716,28 @@ class PlateCrane:
     ) -> None:
         """Removes lid from a plate at source location and places lid at target location
 
-        Args: 
+        Args:
             source (str): source location name defined in resource_defs.py
             target (str): target location name defined in resource_defs.py
             plate_type (str): plate definition name defined in resource_defs.py
             height_offset (int): change in z height to be applied to grip location on the lid (units = mm)
                 defaults to 0mm
 
-        Returns: 
+        Returns:
             None
         """
 
-        # Calculate grip height in motor steps 
-        source_grip_height_in_steps = PlateResource.convert_to_steps(plate_definitions[plate_type].lid_removal_grip_height + height_offset)
-        target_grip_height_in_steps = PlateResource.convert_to_steps(plate_definitions[plate_type].plate_height_with_lid - plate_definitions[plate_type].lid_height + height_offset)
+        # Calculate grip height in motor steps
+        source_grip_height_in_steps = PlateResource.convert_to_steps(
+            plate_definitions[plate_type].lid_removal_grip_height + height_offset
+        )
+        target_grip_height_in_steps = PlateResource.convert_to_steps(
+            plate_definitions[plate_type].plate_height_with_lid
+            - plate_definitions[plate_type].lid_height
+            + height_offset
+        )
 
-        # Pass to transfer function but specify that it is a lid we're transferring 
+        # Pass to transfer function but specify that it is a lid we're transferring
         self.transfer(
             source=source,
             target=target,
@@ -728,7 +746,7 @@ class PlateCrane:
             is_lid=True,
             source_grip_height_in_steps=source_grip_height_in_steps,
             target_grip_height_in_steps=target_grip_height_in_steps,
-            incremental_lift = True,
+            incremental_lift=True,
         )
 
     def replace_lid(
@@ -738,23 +756,27 @@ class PlateCrane:
         plate_type: str,
         height_offset: int = 0,
     ) -> None:
-        """"Replaces lid at source location onto a plate at the target location
+        """ "Replaces lid at source location onto a plate at the target location
 
-        Args: 
+        Args:
             source (str): source location name defined in resource_defs.py
             target (str): target location name defined in resource_defs.py
             plate_type (str): plate definition name defined in resource_defs.py
             height_offset (int): change in z height to be applied to grip location on the lid (units = mm)
                 defaults to 0mm
 
-        Returns: 
+        Returns:
             None
         """
         # Calculate grip height in motor steps
-        source_grip_height_in_steps = PlateResource.convert_to_steps(plate_definitions[plate_type].lid_grip_height + height_offset)
-        target_grip_height_in_steps = PlateResource.convert_to_steps(plate_definitions[plate_type].lid_removal_grip_height + height_offset)
+        source_grip_height_in_steps = PlateResource.convert_to_steps(
+            plate_definitions[plate_type].lid_grip_height + height_offset
+        )
+        target_grip_height_in_steps = PlateResource.convert_to_steps(
+            plate_definitions[plate_type].lid_removal_grip_height + height_offset
+        )
 
-        # Pass to transfer function but specify that it is a lid we're transferring 
+        # Pass to transfer function but specify that it is a lid we're transferring
         self.transfer(
             source=source,
             target=target,
@@ -770,7 +792,7 @@ class PlateCrane:
         source: str,
         target: str,
         plate_type: str,
-        height_offset: int = 0, # units = mm
+        height_offset: int = 0,  # units = mm
         is_lid: bool = False,
         has_lid: bool = False,
         source_grip_height_in_steps: int = None,  # if removing/replacing lid
@@ -779,12 +801,12 @@ class PlateCrane:
     ) -> None:
         """Handles the transfer request
 
-        Args: 
+        Args:
             source (str): source location name defined in resource_defs.py
             target (str): target location name defined in resource_defs.py
             plate_type (str): plate definition name defined in resource_defs.py
             height_offset (int): change in z height to be applied to grip location on the lid (units = mm)
-                defaults to 0mm 
+                defaults to 0mm
             is_lid (bool): True if transferring a lid, False otherwise
                 defaults to False
             has_lid (bool): True if plate being transferred has a lid, otherwise False
@@ -796,97 +818,95 @@ class PlateCrane:
                 defaults to None
                 only used if transfer function is called from remove/replace_lid functions
             incremental_lift (bool): True if you want to use incremental lift, False otherwise (default False)
-                incremental lift (good for ensuring lids are removed gently and correctly): 
+                incremental lift (good for ensuring lids are removed gently and correctly):
                     - grab plate at grip_height_in_steps
                     - raise 100 steps along z axis (repeat 5x)
                     - continue with rest of transfer
 
-        Raises: 
+        Raises:
             TODO
-        
-        Returns: 
-            None                            
+
+        Returns:
+            None
         """
 
         # Extract the source and target location_types
         source_type = locations[source].location_type
         target_type = locations[target].location_type
- 
+
         # Determine source and target grip heights from bottom of plate (converted from mm to z motor steps)
-        """If the transfer function is called from either remove_lid() or replace_lid(), 
+        """If the transfer function is called from either remove_lid() or replace_lid(),
         these values will be precalculated and passed in. Otherwise they need to be calculated here."""
-        if not is_lid: 
-            grip_height_in_steps = PlateResource.convert_to_steps(plate_definitions[plate_type].grip_height + height_offset)
+        if not is_lid:
+            grip_height_in_steps = PlateResource.convert_to_steps(
+                plate_definitions[plate_type].grip_height + height_offset
+            )
             source_grip_height_in_steps = grip_height_in_steps
             target_grip_height_in_steps = grip_height_in_steps
 
         # is safe approach required for source and/or target?
-        source_use_safe_approach = False if locations[source].safe_approach_height == 0 else True
-        target_use_safe_approach = False if locations[target].safe_approach_height == 0 else True
+        source_use_safe_approach = (
+            False if locations[source].safe_approach_height == 0 else True
+        )
+        target_use_safe_approach = (
+            False if locations[target].safe_approach_height == 0 else True
+        )
 
         # PICK PLATE FROM SOURCE LOCATION
         if source_type == "stack":
             self.pick_plate_direct(
                 source=source,
-                source_type=source_type, # "stack"
+                source_type=source_type,  # "stack"
                 plate_type=plate_type,
                 grip_height_in_steps=source_grip_height_in_steps,
                 has_lid=has_lid,
-                incremental_lift=incremental_lift
+                incremental_lift=incremental_lift,
             )
 
-        elif source_type == "nest": 
+        elif source_type == "nest":
             if source_use_safe_approach:
                 self.pick_plate_safe_approach(
-                    source=source, 
-                    plate_type=plate_type, 
+                    source=source,
+                    plate_type=plate_type,
                     grip_height_in_steps=source_grip_height_in_steps,
                 )
             else:
                 self.pick_plate_direct(
-                    source=source, 
+                    source=source,
                     source_type=source_type,  # nest
                     plate_type=plate_type,
                     grip_height_in_steps=source_grip_height_in_steps,
                     has_lid=has_lid,
                     incremental_lift=incremental_lift,
                 )
-        else: 
-            raise Exception(
-                "Source location type not defined correctly"
-            )
-        
+        else:
+            raise Exception("Source location type not defined correctly")
 
         # PLACE PLATE AT TARGET LOCATION
-        if target_type == "stack": 
+        if target_type == "stack":
             self.place_plate_direct(
-                target=target, 
+                target=target,
                 target_type=target_type,
                 grip_height_in_steps=target_grip_height_in_steps,
-        )
-        elif target_type == "nest": 
-            if target_use_safe_approach: 
+            )
+        elif target_type == "nest":
+            if target_use_safe_approach:
                 self.place_plate_safe_approach(
                     target=target,
                     grip_height_in_steps=target_grip_height_in_steps,
                 )
-            else: 
+            else:
                 self.place_plate_direct(
                     target=target,
                     target_type=target_type,
                     grip_height_in_steps=target_grip_height_in_steps,
                 )
-        else: 
-            raise Exception(
-                "Target location type not defined correctly"
-            )
-        
-        
+        else:
+            raise Exception("Target location type not defined correctly")
+
+
 if __name__ == "__main__":
     """
     Runs given function.
     """
     s = PlateCrane("/dev/ttyUSB4")
-
-
-

@@ -20,23 +20,18 @@ if __name__ == "__main__":
 
     # print(s.lid_height)
 
-
     # s.home()
 
-
-
-
     print(s.get_location_list())
-    #s.set_location("Solo.Position2", 53182, -27797, -413, 834)
+    # s.set_location("Solo.Position2", 53182, -27797, -413, 834)
     # s.set_location("HidexSafe", 209959, -2500, 490, -262)
-    #s.transfer("Solo.Position2","Solo.Position2",source_type="stack",target_type="stack", plate_type="96_well", height_offset=-200) # works if don't specify plate type (picks up lower)
+    # s.transfer("Solo.Position2","Solo.Position2",source_type="stack",target_type="stack", plate_type="96_well", height_offset=-200) # works if don't specify plate type (picks up lower)
     # s.transfer("Stack1","Solo.Position2",source_type="stack",target_type="stack", plate_type="96_well", height_offset=-250) # works if don't specify plate type (picks up lower)
     # s.remove_lid("Solo.Position2", "LidNest1", plate_type="96_well", height_offset=-650)
 
     # s.transfer("Solo.Position2","Solo.Position1", source_type="stack", target_type="module", plate_type="96_well", height_offset=-250)
-    #s.transfer("Stack1","Solo.Position2",source_type="stack",target_type="stack", plate_type="96_well") # doesn't work with plate type through driver  (picks up higher)
-    #s.get_position()
-    
+    # s.transfer("Stack1","Solo.Position2",source_type="stack",target_type="stack", plate_type="96_well") # doesn't work with plate type through driver  (picks up higher)
+    # s.get_position()
 
     # s.remove_lid(source="Solo.Position2", target="LidNest1", plate_type="test_96_well", height_offset = -100)
     # print(s.lid_height)

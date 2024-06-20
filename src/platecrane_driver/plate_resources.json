@@ -9,7 +9,7 @@
     },
 
     "96_well":{
-        "plate_above_height": 800,            
+        "plate_above_height": 800,
         "plate_pick_steps_module": 1700,
         "plate_pick_steps_stack": 2700,
         "plate_lid_steps": 1300,
@@ -49,7 +49,7 @@
         "lid_destination_height": 0
     },
     "test_96_well":{
-        "plate_above_height": 800,            
+        "plate_above_height": 800,
         "plate_pick_steps_module": 1700,
         "plate_pick_steps_stack": 1500,
         "plate_lid_steps": 1300,

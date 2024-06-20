@@ -1,4 +1,5 @@
 """Provides SerialPort class to interface with the plate_crane."""
+
 import time
 
 from serial import Serial, SerialException

@@ -1,4 +1,5 @@
 """Driver for the Hudson Robotics Sciclops robot."""
+
 import asyncio
 import re
 
