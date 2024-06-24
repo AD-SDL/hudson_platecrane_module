@@ -228,16 +228,6 @@ def do_action(action_handle: str, action_vars):
     if action_handle == "transfer":
         print("Starting the transfer request")
 
-        # source_type = action_args.get("source_type", None)
-        # print("Source Type: " + str(source_type))
-
-        # target_type = action_args.get("target_type", None)
-        # print("Target Type: " + str(target_type))
-
-        # if not source_type or not target_type:
-        #     print("Please provide source and target transfer types!")
-        #     state = ModuleStatus.ERROR
-
         try:
             platecrane.transfer(
                 source,
