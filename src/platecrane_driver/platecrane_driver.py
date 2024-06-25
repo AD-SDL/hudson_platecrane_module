@@ -12,6 +12,9 @@ from platecrane_driver.serial_port import (
 # from serial_port import SerialPort      # use when running through the driver
 # from resource_defs import locations, plate_definitions
 # from resource_types import PlateResource
+# from serial_port import SerialPort      # use when running through the driver
+# from resource_defs import locations, plate_definitions
+# from resource_types import PlateResource
 
 """
 # TODOs:
@@ -389,6 +392,8 @@ class PlateCrane:
         Returns:
             None
         """
+        print("PICK PLATE SAFE APPROACH CALLED")
+
 
         # open the gripper
         self.gripper_open()
@@ -402,11 +407,21 @@ class PlateCrane:
             Y=current_pos[3],
         )
 
+        # Rotate gripper
+        current_pos = self.get_position()
+        self.move_joint_angles(
+            R=current_pos[0], 
+            Z=current_pos[1],
+            P=locations[source].joint_angles[2], 
+            Y=current_pos[3],
+        )
+
+
         # Lower z axis to safe_approach_z height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=locations[plate_type].safe_approach_height,
+            R=current_pos[0], 
+            Z=locations[source].safe_approach_height,
             P=current_pos[2],
             Y=current_pos[3],
         )
@@ -416,7 +431,7 @@ class PlateCrane:
         self.move_joint_angles(
             R=current_pos[0],
             Z=current_pos[1],
-            P=locations[source].joint_angles[2],
+            P=current_pos[2], 
             Y=locations[source].joint_angles[3],
         )
 
@@ -451,6 +466,7 @@ class PlateCrane:
         )
 
         # move rest of joints to neutral location
+        self.move_tower_neutral()
         self.move_arm_neutral()
 
     def place_plate_safe_approach(
@@ -478,6 +494,15 @@ class PlateCrane:
             Y=current_pos[3],
         )
 
+        # Rotate gripper to correct orientation 
+        current_pos = self.get_position()
+        self.move_joint_angles(
+            R=current_pos[0], 
+            Z=current_pos[1],
+            P=locations[target].joint_angles[2], 
+            Y=current_pos[3],
+        )
+
         # Lower z axis to safe_approach_z height
         current_pos = self.get_position()
         self.move_joint_angles(
@@ -487,12 +512,12 @@ class PlateCrane:
             Y=current_pos[3],
         )
 
-        # extend arm over plate and rotate gripper to correct orientation
+        # extend arm over plate
         current_pos = self.get_position()
         self.move_joint_angles(
             R=current_pos[0],
             Z=current_pos[1],
-            P=locations[target].joint_angles[2],
+            P=current_pos[2], 
             Y=locations[target].joint_angles[3],
         )
 
@@ -505,7 +530,6 @@ class PlateCrane:
             Y=current_pos[3],
         )
 
-        time.sleep(2)
         self.gripper_open()
 
         # Back away using safe approach path
