@@ -1,4 +1,5 @@
 """Defines exceptions for error codes returned by the plate crane controller."""
+
 from __future__ import annotations
 
 
