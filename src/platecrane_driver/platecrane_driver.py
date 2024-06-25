@@ -3,18 +3,16 @@
 import re
 import time
 
-from platecrane_driver.resource_defs import locations, plate_definitions
-from platecrane_driver.resource_types import PlateResource
-from platecrane_driver.serial_port import (
-    SerialPort,  # use when running through WEI REST clients
-)
+# from platecrane_driver.resource_defs import locations, plate_definitions
+# from platecrane_driver.resource_types import PlateResource
+# from platecrane_driver.serial_port import (
+#     SerialPort,  # use when running through WEI REST clients
+# )
 
-# from serial_port import SerialPort      # use when running through the driver
-# from resource_defs import locations, plate_definitions
-# from resource_types import PlateResource
-# from serial_port import SerialPort      # use when running through the driver
-# from resource_defs import locations, plate_definitions
-# from resource_types import PlateResource
+from serial_port import SerialPort      # use when running through the driver
+from resource_defs import locations, plate_definitions
+from resource_types import PlateResource
+
 
 """
 # TODOs:
@@ -91,6 +89,18 @@ class PlateCrane:
     def lock_joints(self):
         """Locks the joints of the plate_crane"""
         command = "limp FALSE\r\n"
+        self.__serial_port.send_command(command)
+
+    def set_speed(self, speed: int): 
+        """Sets the speed of the plate crane arm. 
+        
+        Args: 
+            speed (int): (units = % of full speed) Speed at which to move the PlateCrane EX. Appies to all axes
+            
+        Returns: 
+            None
+        """
+        command = "SPEED " + str(speed)
         self.__serial_port.send_command(command)
 
     def get_location_list(self):
