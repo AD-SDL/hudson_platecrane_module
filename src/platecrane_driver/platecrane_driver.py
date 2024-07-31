@@ -3,15 +3,15 @@
 import re
 import time
 
-# from platecrane_driver.resource_defs import locations, plate_definitions
-# from platecrane_driver.resource_types import PlateResource
-# from platecrane_driver.serial_port import (
-#     SerialPort,  # use when running through WEI REST clients
-# )
+from platecrane_driver.resource_defs import locations, plate_definitions
+from platecrane_driver.resource_types import PlateResource
+from platecrane_driver.serial_port import (
+    SerialPort,  # use when running through WEI REST clients
+)
 
-from serial_port import SerialPort      # use when running through the driver
-from resource_defs import locations, plate_definitions
-from resource_types import PlateResource
+# from serial_port import SerialPort      # use when running through the driver
+# from resource_defs import locations, plate_definitions
+# from resource_types import PlateResource
 
 
 """
@@ -62,7 +62,7 @@ class PlateCrane:
             self.home()
         self.platecrane_current_position = self.get_position()
 
-    def home(self, timeout=28):
+    def home(self):
         """Homes all of the axes. Returns to neutral position (above exchange)
 
         Args:
@@ -74,7 +74,7 @@ class PlateCrane:
 
         # Moves axes to home position
         command = "HOME\r\n"
-        self.__serial_port.send_command(command, timeout)
+        self.__serial_port.send_command(command, timeout=60)
 
     def get_status(self):
         """Checks status of plate_crane"""
@@ -91,17 +91,19 @@ class PlateCrane:
         command = "limp FALSE\r\n"
         self.__serial_port.send_command(command)
 
-    def set_speed(self, speed: int): 
-        """Sets the speed of the plate crane arm. 
-        
-        Args: 
+    def set_speed(self, speed: int):
+        """Sets the speed of the plate crane arm.
+
+        Args:
             speed (int): (units = % of full speed) Speed at which to move the PlateCrane EX. Appies to all axes
-            
-        Returns: 
+
+        Returns:
             None
         """
         command = "SPEED " + str(speed)
-        self.__serial_port.send_command(command)
+        self.__serial_port.send_command(command, timeout=0, delay=1)
+        self.get_position()
+        print(f"SPEED SET TO {speed}%")
 
     def get_location_list(self):
         """Displays all location information stored in the Plate Crane EX robot's memory"""
@@ -166,18 +168,14 @@ class PlateCrane:
 
         try:
             # collect coordinates of current position
-            current_position = list(
-                self.__serial_port.send_command(command, 1).split(" ")
-            )
+            current_position = list(self.__serial_port.send_command(command).split(" "))
             print(current_position)
             current_position = [eval(x.strip(",")) for x in current_position]
             print(current_position)
         except Exception:
             # Fall back: overlapping serial responses were detected. Wait 5 seconds then resend latest command
             time.sleep(5)
-            current_position = list(
-                self.__serial_port.send_command(command, 1).split(" ")
-            )
+            current_position = list(self.__serial_port.send_command(command).split(" "))
             current_position = [eval(x.strip(",")) for x in current_position]
 
         return current_position
@@ -263,7 +261,7 @@ class PlateCrane:
         """
 
         command = "JOG %s,%d\r\n" % (axis, distance)
-        self.__serial_port.send_command(command, timeout=1.5)
+        self.__serial_port.send_command(command)
 
     def move_joint_angles(self, R: int, Z: int, P: int, Y: int) -> None:
         """Move to a specified location
@@ -279,7 +277,7 @@ class PlateCrane:
         command = "MOVE TEMP\r\n"
 
         try:
-            self.__serial_port.send_command(command, 2)
+            self.__serial_port.send_command(command, timeout=60)
 
         except Exception as err:
             print(err)
@@ -290,14 +288,12 @@ class PlateCrane:
 
         self.delete_location("TEMP")
 
-    def move_single_axis(self, axis: str, loc: str, delay_time=1.5) -> None:
+    def move_single_axis(self, axis: str, loc: str) -> None:
         """Moves on a single axis, using an existing location in PlateCrane EX device memory as reference
 
         Args:
             axis (str): axis to move along
             loc (str): name of location in PlateCrane EX device memory to use as reference
-            delay_time (float): serial command timeout. Seconds to wait before expecting a serial response
-                defaults to 1.5 seconds
 
         Raises:
             TODO
@@ -316,16 +312,14 @@ class PlateCrane:
             )
 
         command = "MOVE_" + axis.upper() + " " + loc + "\r\n"
-        self.__serial_port.send_command(command, timeout=delay_time)
+        self.__serial_port.send_command(command)
         self.move_status = "COMPLETED"
 
-    def move_location(self, loc: str = None, move_time: float = 4.7) -> None:
+    def move_location(self, loc: str = None) -> None:
         """Moves all joint to the given location.
 
         Args:
             loc (str): location to move to
-            move_time (float): serial command timeout. Seconds to wait before expecting a serial response
-                defaults to 4.7 seconds
 
         Returns:
             None
@@ -339,7 +333,7 @@ class PlateCrane:
             )
 
         cmd = "MOVE " + loc + "\r\n"
-        self.__serial_port.send_command(cmd, timeout=move_time)
+        self.__serial_port.send_command(cmd)
 
     def move_tower_neutral(self) -> None:
         """Moves the tower to neutral position
@@ -371,7 +365,7 @@ class PlateCrane:
     def move_gripper_neutral(self) -> None:
         """Moves the gripper to neutral position"""
 
-        self.move_single_axis("P", "Safe", delay_time=0.3)
+        self.move_single_axis("P", "Safe")
 
         current_pos = self.get_position()
         self.move_joint_angles(
@@ -404,7 +398,6 @@ class PlateCrane:
         """
         print("PICK PLATE SAFE APPROACH CALLED")
 
-
         # open the gripper
         self.gripper_open()
 
@@ -420,17 +413,16 @@ class PlateCrane:
         # Rotate gripper
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=current_pos[1],
-            P=locations[source].joint_angles[2], 
+            P=locations[source].joint_angles[2],
             Y=current_pos[3],
         )
-
 
         # Lower z axis to safe_approach_z height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=locations[source].safe_approach_height,
             P=current_pos[2],
             Y=current_pos[3],
@@ -441,7 +433,7 @@ class PlateCrane:
         self.move_joint_angles(
             R=current_pos[0],
             Z=current_pos[1],
-            P=current_pos[2], 
+            P=current_pos[2],
             Y=locations[source].joint_angles[3],
         )
 
@@ -504,12 +496,12 @@ class PlateCrane:
             Y=current_pos[3],
         )
 
-        # Rotate gripper to correct orientation 
+        # Rotate gripper to correct orientation
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0], 
+            R=current_pos[0],
             Z=current_pos[1],
-            P=locations[target].joint_angles[2], 
+            P=locations[target].joint_angles[2],
             Y=current_pos[3],
         )
 
@@ -527,7 +519,7 @@ class PlateCrane:
         self.move_joint_angles(
             R=current_pos[0],
             Z=current_pos[1],
-            P=current_pos[2], 
+            P=current_pos[2],
             Y=locations[target].joint_angles[3],
         )
 
@@ -607,13 +599,29 @@ class PlateCrane:
             # close the gripper
             self.gripper_close()
 
-            # tap arm on top of plate stack to determine stack height
+            # move the arm directly above the stack
             self.move_joint_angles(
                 R=locations[source].joint_angles[0],
-                Z=locations[source].joint_angles[1],
+                Z=current_pos[1],
                 P=locations[source].joint_angles[2],
                 Y=locations[source].joint_angles[3],
             )
+
+            # decrease the plate crane speed
+            self.set_speed(50)
+
+            # move down in z height to tap the top of the plates in stack
+            self.move_joint_angles(
+                R=locations[source].joint_angles[0],
+                Z=locations[source].joint_angles[
+                    1
+                ],  # this is the only axis that should need to move
+                P=locations[source].joint_angles[2],
+                Y=locations[source].joint_angles[3],
+            )
+
+            # set plate crane back to full speed
+            self.set_speed(100)
 
             # Move up, open gripper, grab plate at correct height
             self.jog("Z", 1000)
@@ -701,6 +709,10 @@ class PlateCrane:
             Y=locations[target].joint_angles[3],
         )
 
+        if target_type == "stack":
+            # lower plate crane speed
+            self.set_speed(50)
+
         # Lower arm (z axis) to plate grip height
         current_pos = self.get_position()
         self.move_joint_angles(
@@ -710,6 +722,11 @@ class PlateCrane:
             Y=current_pos[3],
         )
 
+        if target_type == "stack":
+            # return plate crane to sull speed
+            self.set_speed(100)
+
+        # open gripper to release the plate
         self.gripper_open()
 
         self.move_tower_neutral()

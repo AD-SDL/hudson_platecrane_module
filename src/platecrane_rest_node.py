@@ -169,6 +169,18 @@ async def about():
                 description="This action moves the arm to a safe location.",
                 args=[],
             ),
+            ModuleAction(
+                name="set_speed",
+                description="This action sets the speed of the PlateCrane EX.",
+                args=[
+                    ModuleActionArg(
+                        name="speed",
+                        description="Speed at which to set the plate crane arm. (units = percentage of total speed)",
+                        type="int",
+                        required=True,
+                    ),
+                ],
+            ),
         ],
         resource_pools=[],
     )
@@ -224,6 +236,8 @@ def do_action(action_handle: str, action_vars):
     print("Height Offset: " + str(height_offset))
     has_lid = action_args.get("has_lid", False)
     print("Has Lid: " + str(bool(has_lid)))
+    speed = action_args.get("speed", 100)
+    print("Speed: " + str(int(speed)))
 
     if action_handle == "transfer":
         print("Starting the transfer request")
@@ -299,6 +313,20 @@ def do_action(action_handle: str, action_vars):
         else:
             response.action_response = StepStatus.SUCCEEDED
             response.action_msg = "Move Safe successfully completed"
+            state = ModuleStatus.IDLE
+        print("Finished Action: " + action_handle.upper())
+        return response
+    elif action_handle == "set_speed":
+        try:
+            platecrane.set_speed(speed=speed)
+        except Exception as err:
+            response.action_response = StepStatus.FAILED
+            response.action_log = "Set Speed Failed. Error:" + str(err)
+            print(str(err))
+            state = ModuleStatus.ERROR
+        else:
+            response.action_response = StepStatus.SUCCEEDED
+            response.action_msg = "Set Speed completed"
             state = ModuleStatus.IDLE
         print("Finished Action: " + action_handle.upper())
         return response

@@ -49,12 +49,15 @@ class SerialPort:
         else:
             print("Robot is successfully disconnected")
 
-    def send_command(self, command, timeout=0):
+    def send_command(self, command, timeout=10, delay=0):
         """
         Sends provided command to Peeler and stores data outputted by the peeler.
         Indicates when the confirmation that the Peeler received the command by displaying 'ACK TRUE.'
         """
+        print_command = command.strip("\r\n")
+        print(f"Sending command '{print_command}'")
 
+        send_time = time.time()
         try:
             self.connection.write(command.encode("utf-8"))
 
@@ -65,14 +68,18 @@ class SerialPort:
         response_msg = ""
         initial_command_msg = ""
 
-        time.sleep(timeout)
+        time.sleep(delay)
 
-        while initial_command_msg == "":
-            response_msg, initial_command_msg = self.receive_command(timeout)
+        response_msg, initial_command_msg = self.receive_command(
+            initial_command_msg=command.strip("\r\n"), timeout=timeout
+        )
 
         # Print the full output message including the initial command that was sent
-        print(initial_command_msg)
-        print(response_msg)
+        print_command = initial_command_msg.strip("\r\n")
+        print_response = response_msg.strip("\r\n")
+        print(
+            f"Command '{print_command}': {print_response} (elapsed time: {time.time() - send_time} seconds)"
+        )
 
         error_codes = {
             "21": "R axis error",
@@ -89,7 +96,7 @@ class SerialPort:
 
         return response_msg
 
-    def receive_command(self, time_wait):
+    def receive_command(self, initial_command_msg="", timeout=0):
         """
         Records the data outputted by the plate_crane and sets it to equal "" if no data is outputted in the provided time.
         """
@@ -97,16 +104,22 @@ class SerialPort:
         # response_string = self.connection.read_until(expected=b'\r').decode('utf-8')
         response = ""
         response_string = ""
-        initial_command_msg = ""
+        response_command_msg = ""
 
-        if self.connection.in_waiting != 0:
-            response = self.connection.readlines()
-            initial_command_msg = response[0].decode("utf-8").strip("\r\n")
-            if len(response) > 1:
-                for line_index in range(1, len(response)):
-                    response_string += "\n" + response[line_index].decode(
-                        "utf-8"
-                    ).strip("\r\n")
-            else:
-                response_string = ""
-        return response_string, initial_command_msg
+        start_wait = time.time()
+        while True:
+            if self.connection.in_waiting != 0:
+                response = self.connection.readlines()
+                if response[0].decode("utf-8").strip("\r\n") == initial_command_msg:
+                    response_command_msg = initial_command_msg
+                if len(response) > 1:
+                    for line_index in range(1, len(response)):
+                        response_string += "\n" + response[line_index].decode(
+                            "utf-8"
+                        ).strip("\r\n")
+                else:
+                    response_string = response[0].decode("utf-8").strip("\r\n")
+            if time.time() - start_wait > timeout or response_string != "":
+                break
+            time.sleep(0.25)
+        return response_string, response_command_msg
