@@ -20,7 +20,59 @@ if __name__ == "__main__":
 
     # print(s.lid_height)
 
-    s.remove_lid(source="Solo.Position2", target="LidNest1", plate_type="test_96_well")
+    # s.home()
+
+    # s.home()
+
+    # print(s.get_location_list())
+    # s.set_location("Solo.Position2", 53182, -27797, -413, 834)
+    # print(s.get_location_list())
+    # s.set_location("Solo.Position2", 53182, -27797, -413, 834)
+    # s.set_location("HidexSafe", 209959, -2500, 490, -262)
+    # s.transfer("Solo.Position1","Solo.Position2", plate_type="flat_bottom_96well") # works if don't specify plate type (picks up lower)
+    # s.transfer("Stack1","Solo.Position1", plate_type="flat_bottom_96well", has_lid=True) # works if don't specify plate type (picks up lower)
+    # s.transfer("Solo.Position1","Hidex.Nest", plate_type="flat_bottom_96well", height_offset = 8) # works if don't specify plate type (picks up lower)
+
+    # s.remove_lid(source="Solo.Position1", target="LidNest1", plate_type="flat_bottom_96well")
+    # s.replace_lid(source="LidNest1", target="Solo.Position1", plate_type="flat_bottom_96well")
+
+    # s.transfer("Hidex.Nest","Sealer.Nest", plate_type="flat_bottom_96well", height_offset = 8) # works if don't specify plate type (picks up lower)
+    # s.transfer("Solo.Position2", "Sealer.Nest", plate_type="flat_bottom_96well", has_lid=False) # works if don't specify plate type (picks up lower)
+
+    # DEMO MOVEMENTS
+    # s.transfer("Stack1", "Solo.Position2", plate_type="flat_bottom_96well", has_lid=True)
+    # s.remove_lid("Solo.Position2", "LidNest1", plate_type="flat_bottom_96well")
+    # s.transfer("Solo.Position2", "Hidex.Nest", plate_type="flat_bottom_96well", has_lid=False, height_offset=8)
+    # s.transfer("Sealer.Nest", "Liconic.Nest", plate_type="flat_bottom_96well", has_lid=False)
+    # s.transfer("Stack1", "Solo.Position2", plate_type="flat_bottom_96well", has_lid=False)
+    # s.transfer("Solo.Position2", "Stack1", plate_type="flat_bottom_96well", has_lid=False)
+
+    # s.set_speed(100)
+    s.transfer(
+        "Stack1", "Solo.Position2", plate_type="flat_bottom_96well", has_lid=False
+    )
+    # s.transfer("Solo.Position2", "Stack1", plate_type="flat_bottom_96well", has_lid=False)
+
+    # s.transfer("Peeler.Nest", "Hidex.Nest", plate_type="flat_bottom_96well", has_lid=False, height_offset =8)
+
+    # s.transfer("Solo.Position2", "Liconic.Nest", plate_type="flat_bottom_96well", has_lid=False)
+
+    # s.transfer("Peeler.Nest", "Solo.Position2", plate_type="flat_bottom_96well", has_lid=True) # works if don't specify plate type (picks up lower)
+    # s.transfer("Stack1","Stack2", plate_type="flat_bottom_96well", has_lid=True) # works if don't specify plate type (picks up lower)
+
+    # s.transfer("Solo.Position2","Solo.Position2",source_type="stack",target_type="stack", plate_type="96_well", height_offset=-200) # works if don't specify plate type (picks up lower)
+    # s.transfer("Stack1","Solo.Position2",source_type="stack",target_type="stack", plate_type="96_well", height_offset=-250) # works if don't specify plate type (picks up lower)
+    # s.replace_lid("LidNest1", "Solo.Position2", plate_type="flat_bottom_96well")
+
+    # s.transfer("Solo.Position2","Solo.Position1", source_type="stack", target_type="stack", plate_type="flat_bottom_96", height_offset=0)
+    # s.transfer("Stack1","Solo.Position2",source_type="stack",target_type="stack", plate_type="96_well") # doesn't work with plate type through driver  (picks up higher)
+    # s.get_position()
+
+    # s.transfer("Solo.Position2","Solo.Position1", source_type="stack", target_type="module", plate_type="96_well", height_offset=-250)
+    # s.transfer("Stack1","Solo.Position2",source_type="stack",target_type="stack", plate_type="96_well") # doesn't work with plate type through driver  (picks up higher)
+    # s.get_position()
+
+    # s.remove_lid(source="Solo.Position2", target="LidNest1", plate_type="test_96_well", height_offset = -100)
     # print(s.lid_height)
     # s.move_location("Solo.Position1")
 
@@ -31,7 +83,7 @@ if __name__ == "__main__":
     # s.move_location("Safe")
 
     # s.move_location("Stack4")
-    # s.move_single_axis("Z", "Safe", delay_time=1)  # move all the way up in z height
+    # s.move_single_axis("Z", "Safe")  # move all the way up in z height
 
     # print(s.get_location_list())
 
@@ -164,7 +216,7 @@ if __name__ == "__main__":
 # s.get_location_list()
 
 # s.move_joints_neutral()
-# s.move_single_axis("R", "Safe", delay_time=1)
+# s.move_single_axis("R", "Safe")
 # s.set_location("Safe",R=195399,Z=0,P=0,Y=0)
 # s.set_location("LidNest2",R=131719,Z=-31001,P=-5890,Y=-315)
 # s.transfer(source="LidNest1",target="LidNest2",source_type="stack",target_type="stack", plate_type="96_well")

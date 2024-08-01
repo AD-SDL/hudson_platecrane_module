@@ -10,7 +10,7 @@ services:
         - ${IMAGE}:latest
         - ${IMAGE}:${PROJECT_VERSION}
         - ${IMAGE}:dev
-    command: python -m platecrane_rest_node --port 2000 --device ${DEVICE}
+    command: python -m sciclops_rest_node --port 2000 --device ${DEVICE}
     privileged: true
     env_file: .env
     volumes:
