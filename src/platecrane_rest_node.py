@@ -8,6 +8,7 @@ from fastapi.datastructures import State
 from platecrane_driver.platecrane_driver import PlateCrane
 from typing_extensions import Annotated
 from wei.modules.rest_module import RESTModule
+from wei.types.step_types import StepResponse
 from wei.utils import extract_version
 
 rest_module = RESTModule(
@@ -46,7 +47,7 @@ def transfer(
     has_lid: Annotated[
         bool, "Whether or not the plate currently has a lid on it"
     ] = False,
-):
+) -> StepResponse:
     """This action picks up a plate from one location and transfers is to another."""
     platecrane: PlateCrane = state.platecrane
     platecrane.transfer(
@@ -56,6 +57,7 @@ def transfer(
         height_offset=int(height_offset),
         has_lid=has_lid,
     )
+    return StepResponse.step_succeeded("Transfer complete")
 
 
 @rest_module.action()
@@ -80,6 +82,7 @@ def remove_lid(
         plate_type=plate_type,
         height_offset=height_offset,
     )
+    return StepResponse.step_succeeded("Removed lid")
 
 
 @rest_module.action()
@@ -104,6 +107,7 @@ def replace_lid(
         plate_type=plate_type,
         height_offset=height_offset,
     )
+    return StepResponse.step_succeeded("Replaced lid")
 
 
 @rest_module.action()
@@ -113,6 +117,7 @@ def move_safe(
     """This action moves the arm to a safe location (the location named "Safe")."""
     platecrane: PlateCrane = state.platecrane
     platecrane.move_location("Safe")
+    return StepResponse.step_succeeded("Moved to the Safe position")
 
 
 @rest_module.action()
@@ -123,6 +128,7 @@ def set_speed(
     """This action sets the speed at which the plate crane arm moves (as a percentage)"""
     platecrane: PlateCrane = state.platecrane
     platecrane.set_speed(speed=speed)
+    return StepResponse.step_succeeded(f"Set speed to {speed}")
 
 
 if __name__ == "__main__":
