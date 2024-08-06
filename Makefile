@@ -1,14 +1,11 @@
 # Python Configuration
 PYPROJECT_TOML := pyproject.toml
-PROJECT_VERSION := $(shell grep -oP '(?<=version = ")[^"]+' $(PYPROJECT_TOML) | head -n 1)
 
 .DEFAULT_GOAL := init
 
 .PHONY += init paths checks test clean
 init: # Do the initial configuration of the project
 	@test -e .env || cp example.env .env
-	@sed -i 's/^PROJECT_VERSION=.*/PROJECT_VERSION=$(PROJECT_VERSION)/' .env
-	@sed -i 's/^PROJECT_PATH=.*/PROJECT_PATH=$(shell pwd | sed 's/\//\\\//g')/' .env
 
 .env: init
 

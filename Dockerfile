@@ -1,4 +1,4 @@
-FROM ghcr.io/ad-sdl/wei
+FROM ghcr.io/ad-sdl/wei:v0.5.9
 
 LABEL org.opencontainers.image.source=https://github.com/AD-SDL/hudson_platecrane_module
 LABEL org.opencontainers.image.description="Drivers and REST API's for the Hudson Platecrane and Sciclops robots"

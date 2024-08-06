@@ -1,6 +1,6 @@
 [project]
 name = "hudson_platecrane_module"
-version = "1.0.0"
+version = "1.4.1"
 description = "Driver for the Platecrane and Sciclops"
 authors = [
     {name = "Ryan D. Lewis", email="ryan.lewis@anl.gov"},
@@ -17,6 +17,7 @@ dependencies = [
     "libusb",
     "pyserial",
     "ad_sdl.wei",
+    "pydantic>=2.7",
     "pytest"
 ]
 requires-python = ">=3.8.1"
