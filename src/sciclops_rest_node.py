@@ -42,12 +42,14 @@ def sciclops_startup(state: State):
         print("SCICLOPS online")
     state.status = ModuleStatus.IDLE
 
+
 @rest_module.action(name="status")
 def status(state: State):
     """Action that forces the sciclops to check its status."""
     sciclops: SCICLOPS = state.sciclops
     sciclops.get_status()
     return StepResponse.step_succeeded(action_msg="Succesfully got status")
+
 
 @rest_module.action()
 def home(state: State):
