@@ -55,7 +55,7 @@ def status(state: State):
 def home(state: State):
     """Homes the sciclops"""
     state.sciclops.home()
-    return StepResponse.step_succeeded(action_msg="Succesfully Homed Robot")
+    return StepResponse.step_succeeded()
 
 
 @rest_module.action(name="get_plate")
@@ -67,7 +67,7 @@ def get_plate(
 ):
     """Get a plate from a stack position and move it to transfer point (or trash)"""
     state.sciclops.get_plate(pos, lid, trash)
-    return StepResponse.step_succeeded(action_msg="Succesfully got plate")
+    return StepResponse.step_succeeded()
 
 
 rest_module.start()
