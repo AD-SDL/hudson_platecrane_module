@@ -8,7 +8,7 @@ from platecrane_driver.sciclops_driver import SCICLOPS
 from typing_extensions import Annotated
 from wei.modules.rest_module import RESTModule
 from wei.types.module_types import ModuleStatus
-from wei.types.step_types import StepResponse
+from wei.types.step_types import StepSucceeded
 from wei.utils import extract_version
 
 rest_module = RESTModule(
@@ -48,14 +48,14 @@ def status(state: State):
     """Action that forces the sciclops to check its status."""
     sciclops: SCICLOPS = state.sciclops
     sciclops.get_status()
-    return StepResponse.step_succeeded(action_msg="Succesfully got status")
+    return StepSucceeded()
 
 
 @rest_module.action()
 def home(state: State):
     """Homes the sciclops"""
     state.sciclops.home()
-    return StepResponse.step_succeeded()
+    return StepSucceeded()
 
 
 @rest_module.action(name="get_plate")
@@ -67,7 +67,7 @@ def get_plate(
 ):
     """Get a plate from a stack position and move it to transfer point (or trash)"""
     state.sciclops.get_plate(pos, lid, trash)
-    return StepResponse.step_succeeded()
+    return StepSucceeded()
 
 
 rest_module.start()
