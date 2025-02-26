@@ -1,6 +1,7 @@
 """Resource definitions for the platecrane in BIO 350."""
 
 # from resource_types import Location, PlateResource  # through driver
+
 from platecrane_driver.resource_types import Location, PlateResource  # through WEI
 
 # Locations accessible by the PlateCrane EX. [R (base), Z (vertical axis), P (gripper rotation), Y (arm extension)]
@@ -73,13 +74,13 @@ locations = {
     ),
     "Hidex.Nest": Location(
         name="Hidex.Nest",
-        joint_angles=[102327, -31090, -5840, 2389],
+        joint_angles=[101813, -31090, -5895, 2335],
         location_type="nest",
         safe_approach_height=-27033,
     ),
     "Sealer.Nest": Location(
         name="Sealer.Nest",
-        joint_angles=[117412, 920, -4766, 4514],
+        joint_angles=[115765, -200, -4895, 4406],
         location_type="nest",
         safe_approach_height=0,
     ),
