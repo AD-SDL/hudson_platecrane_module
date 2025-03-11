@@ -72,15 +72,21 @@ locations = {
         location_type="nest",
         safe_approach_height=0,
     ),
+    "Solo.Position2AfterPeeler": Location(
+        name="Solo.Position2",
+        joint_angles=[53225, -27960, -431, 855],
+        location_type="nest",
+        safe_approach_height=0,
+    ),
     "Hidex.Nest": Location(
         name="Hidex.Nest",
-        joint_angles=[101813, -31090, -5895, 2335],
+        joint_angles=[101920, -31090, -5895, 2334],
         location_type="nest",
         safe_approach_height=-27033,
     ),
     "Sealer.Nest": Location(
         name="Sealer.Nest",
-        joint_angles=[115765, -200, -4895, 4406],
+        joint_angles=[115765, -1600, -4895, 4406],
         location_type="nest",
         safe_approach_height=0,
     ),
