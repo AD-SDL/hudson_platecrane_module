@@ -42,9 +42,9 @@ locations = {
         location_type="stack",
         safe_approach_height=0,
     ),
-    "LidNest1": Location(
+    "LidNest1": Location(  # AFTER VIBRATION TABLE
         name="LidNest1",
-        joint_angles=[168355, -31800, 484, -306],
+        joint_angles=[168355, -32100, 484, -306],
         location_type="nest",
         safe_approach_height=0,
     ),
@@ -66,39 +66,39 @@ locations = {
         location_type="nest",
         safe_approach_height=0,
     ),
-    "Solo.Position2": Location(
+    "Solo.Position2": Location(  # AFTER VIBRATION TABLE
         name="Solo.Position2",
-        joint_angles=[53182, -27951, -413, 834],
+        joint_angles=[57798, -27200, -260, 2481],
         location_type="nest",
         safe_approach_height=0,
     ),
-    "Solo.Position2AfterPeeler": Location(
+    "Solo.Position2AfterPeeler": Location(  # before vibration table
         name="Solo.Position2",
         joint_angles=[53225, -27960, -431, 855],
         location_type="nest",
         safe_approach_height=0,
     ),
-    "Hidex.Nest": Location(
+    "Hidex.Nest": Location(  # AFTER VIBRATION TABLE
         name="Hidex.Nest",
-        joint_angles=[101920, -31090, -5895, 2334],
+        joint_angles=[102917, -31090, -5923, 2356],
         location_type="nest",
         safe_approach_height=-27033,
     ),
-    "Sealer.Nest": Location(
+    "Sealer.Nest": Location(  # AFTER VIBRATION TABLE
         name="Sealer.Nest",
-        joint_angles=[115765, -1600, -4895, 4406],
+        joint_angles=[119812, -1445, -4688, 4132],
         location_type="nest",
         safe_approach_height=0,
     ),
-    "Peeler.Nest": Location(
+    "Peeler.Nest": Location(  # AFTER VIBRATION Table
         name="Peeler.Nest",
-        joint_angles=[292635, -31008, -4521, 4235],
+        joint_angles=[302711, -30000, -4123, 2272],
         location_type="nest",
         safe_approach_height=0,
     ),
-    "Liconic.Nest": Location(
+    "Liconic.Nest": Location(  # AFTER VIBRATION TABLE
         name="Liconic.Nest",
-        joint_angles=[265563, -19800, -5413, 4978],
+        joint_angles=[267370, -24426, -5328, 1673],
         location_type="nest",
         safe_approach_height=0,
     ),
