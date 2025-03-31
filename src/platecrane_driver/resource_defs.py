@@ -5,6 +5,7 @@
 from platecrane_driver.resource_types import Location, PlateResource  # through WEI
 
 # Locations accessible by the PlateCrane EX. [R (base), Z (vertical axis), P (gripper rotation), Y (arm extension)]
+
 locations = {
     "Safe": Location(
         name="Safe",
@@ -12,9 +13,9 @@ locations = {
         location_type="nest",
         safe_approach_height=0,
     ),
-    "Stack1": Location(
+    "Stack1": Location(  # After vibration table
         name="Stack1",
-        joint_angles=[164672, -32703, 472, 5389],
+        joint_angles=[164681, -32703, 472, 5544],
         location_type="stack",
         safe_approach_height=0,
     ),
@@ -30,19 +31,19 @@ locations = {
         location_type="stack",
         safe_approach_height=0,
     ),
-    "Stack4": Location(
+    "Stack4": Location(  # After vibration table
         name="Stack4",
-        joint_angles=[217401, -32703, 546, 5473],
+        joint_angles=[216802, -32703, 412, 5504],
         location_type="stack",
         safe_approach_height=0,
     ),
-    "Stack5": Location(
+    "Stack5": Location(  # After vibration table
         name="Stack5",
-        joint_angles=[235104, -32703, 532, 5453],
+        joint_angles=[234356, -32703, 460, 5479],
         location_type="stack",
         safe_approach_height=0,
     ),
-    "LidNest1": Location(  # AFTER VIBRATION TABLE
+    "LidNest1": Location(  # After vibration table
         name="LidNest1",
         joint_angles=[168355, -32100, 484, -306],
         location_type="nest",
@@ -66,37 +67,37 @@ locations = {
         location_type="nest",
         safe_approach_height=0,
     ),
-    "Solo.Position2": Location(  # AFTER VIBRATION TABLE
+    "Solo.Position2": Location(  # After vibration table
         name="Solo.Position2",
         joint_angles=[57798, -27200, -260, 2481],
         location_type="nest",
         safe_approach_height=0,
     ),
-    "Solo.Position2AfterPeeler": Location(  # before vibration table
+    "Solo.Position2AfterPeeler": Location(  # no longer needed
         name="Solo.Position2",
         joint_angles=[53225, -27960, -431, 855],
         location_type="nest",
         safe_approach_height=0,
     ),
-    "Hidex.Nest": Location(  # AFTER VIBRATION TABLE
+    "Hidex.Nest": Location(  # After vibration table
         name="Hidex.Nest",
-        joint_angles=[102917, -31090, -5923, 2356],
+        joint_angles=[102688, -31390, -5923, 2400],
         location_type="nest",
         safe_approach_height=-27033,
     ),
-    "Sealer.Nest": Location(  # AFTER VIBRATION TABLE
+    "Sealer.Nest": Location(  # After vibration table
         name="Sealer.Nest",
         joint_angles=[119812, -1445, -4688, 4132],
         location_type="nest",
         safe_approach_height=0,
     ),
-    "Peeler.Nest": Location(  # AFTER VIBRATION Table
+    "Peeler.Nest": Location(  # After vibration table
         name="Peeler.Nest",
         joint_angles=[302711, -30000, -4123, 2272],
         location_type="nest",
         safe_approach_height=0,
     ),
-    "Liconic.Nest": Location(  # AFTER VIBRATION TABLE
+    "Liconic.Nest": Location(  # After vibration table
         name="Liconic.Nest",
         joint_angles=[267370, -24426, -5328, 1673],
         location_type="nest",
