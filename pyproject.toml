@@ -16,7 +16,7 @@ dependencies = [
     "pyusb",
     "libusb",
     "pyserial",
-    "ad_sdl.wei>=0.6.0",
+    "ad_sdl.wei>=0.7.3",
     "pydantic>=2.7",
     "pytest"
 ]
