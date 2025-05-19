@@ -77,3 +77,7 @@ git clone https://github.com/AD-SDL/hudson_platecrane_module
 cd hudson_platecrane_module
 python setup.py install
 ```
+
+## Sciclops USB Permissions
+
+See the following for how to run the sciclops without sudo: https://stackoverflow.com/questions/50625363/usberror-errno-13-access-denied-insufficient-permissions

@@ -31,16 +31,8 @@ def sciclops_startup(state: State):
     -------
     None"""
     print("Hello, World!")
-    try:
-        state.sciclops = SCICLOPS()
-        print(state._state)
-    except Exception as error_msg:
-        state.status = ModuleStatus.ERROR
-        print("------- SCICLOPS Error message: " + str(error_msg) + (" -------"))
-
-    else:
-        print("SCICLOPS online")
-    state.status = ModuleStatus.IDLE
+    state.sciclops = SCICLOPS()
+    print("SCICLOPS online")
 
 
 @rest_module.action(name="status")
