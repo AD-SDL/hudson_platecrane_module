@@ -1,125 +1,154 @@
 """Provides SerialPort class to interface with the plate_crane."""
 
+import threading
 import time
+from typing import Optional, Union
 
+import serial
+from madsci.client.event_client import EventClient
 from serial import Serial, SerialException
 
 
 class SerialPort:
     """
     Description:
-    Python interface that allows remote commands to be executed to the plate_crane.
+    Python interface that allows remote commands to be executed on the serial device.
     """
 
-    def __init__(self, host_path="/dev/ttyUSB2", baud_rate=9600):
+    connection: Optional[Serial] = None
+    """Serial connection to the device."""
+    device: Union[str, int]
+    """Path to the serial device or, on windows, integer COM port identifier. Example: '/dev/ttyUSB1' or 1."""
+    baud_rate: int
+    """Baud rate for the serial connection."""
+
+    def __init__(
+        self,
+        device: str = "/dev/ttyUSB2",
+        baud_rate: int = 9600,
+        logger: Optional[EventClient] = None,
+    ) -> None:
         """Creates a new SerialPort object.
         Params:
         - host_path (str): The path to the serial port. Default is '/dev/ttyUSB2'.
         - baud_rate (int): The baud rate of the serial port. Default is 9600.
         """
-        self.host_path = host_path
+        self.device = device
         self.baud_rate = baud_rate
         self.connection = None
+        self.logger = logger or EventClient()
 
         self.status = 0
         self.error = ""
+        self._serial_lock = threading.Lock()
 
-        self.__connect_plate_crane()
+    def __del__(self) -> None:
+        """Destructor to ensure the device is disconnected when the object is deleted."""
+        self.disconnect()
 
-    def __del__(self):
-        """Destructor to ensure the robot is disconnected when the object is deleted."""
-        self.__disconnect_robot()
-
-    def __connect_plate_crane(self):
+    def connect(self) -> None:
         """
-        Connect to serial port / If wrong port entered inform user
+        Connect to the serial device, raising an exception if the connection fails.
         """
-        try:
-            self.connection = Serial(self.host_path, self.baud_rate, timeout=1)
-            self.connection_status = Serial(self.host_path, self.baud_rate, timeout=1)
-        except Exception as e:
-            raise Exception("Could not establish connection") from e
+        self.connection = Serial(self.device, self.baud_rate, timeout=1)
+        if not self.connection.is_open:
+            raise SerialException(f"Failed to open serial port {self.device}")
+        self.logger.log_info(f"Connected to {self.device} at {self.baud_rate} baud")
 
-    def __disconnect_robot(self):
+    def disconnect(self) -> None:
         """Disconnects the robot from the serial port."""
-        try:
+        if self.connection and self.connection.is_open:
             self.connection.close()
-        except Exception as err:
-            print(err)
+
+    def read_messages(self) -> None:
+        """
+        Reads messages from the serial port and store results.
+        """
+        if not self.connection or not self.connection.is_open:
+            self.connect()
+
+        with self._serial_lock:
+            try:
+                while self.connection.in_waiting > 0:
+                    message = self.connection.readline().decode("utf-8")
+                    if message:
+                        self.logger.log_debug(f"Received message: {message}")
+                        self.process_message(message)
+                    else:
+                        self.logger.log_debug("No message received")
+            except serial.SerialException as e:
+                self.logger.error(f"Serial error: {e}")
+            except Exception as e:
+                self.logger.error(f"Error reading messages: {e}")
+
+    def process_message(self, message: str) -> None:
+        """
+        Processes the message received from the serial port.
+        This method can be overridden to handle specific messages.
+        """
+        self.logger.log_debug(f"Processing message: {message.strip('\r\n')}")
+        self.response_buffer.append(message.strip("\r\n"))
+        if self.last_command and message.startswith(self.last_command):
+            self.logger.log_debug(
+                f"Command '{self.last_command}' acknowledged by device."
+            )
+            self.acknowledged = True
         else:
-            print("Robot is successfully disconnected")
+            self.logger.log_debug(f"Recieved response: {message.strip('\r\n')}")
+            self.last_response = message.strip("\r\n")
 
-    def send_command(self, command, timeout=10, delay=0):
+    def send_command(
+        self,
+        command: str,
+        wait_for_response: bool = True,
+        timeout: Union[float, int] = 60,
+        expected_response: Optional[str] = None,
+    ) -> str:
         """
-        Sends provided command to Peeler and stores data outputted by the peeler.
-        Indicates when the confirmation that the Peeler received the command by displaying 'ACK TRUE.'
+        Sends a command to the device and waits for a response.
+        Params:
+        - command (str): The command to send to the device.
+        - wait_for_response (bool): Whether to wait for a response from the device. Default is True.
+        - timeout (float): The time to wait for a response before timing out. Default is 60 seconds.
+        - expected_response (str): The expected response from the device. Default is None.
+        Returns:
+        - str: The last response from the device.
         """
-        print_command = command.strip("\r\n")
-        print(f"Sending command '{print_command}'")
+        self.logger.log_info(
+            f"Sending command '{command.strip('\r\n')}' to {self.device}"
+        )
 
-        send_time = time.time()
-        try:
+        if not self.connection or not self.connection.is_open:
+            self.connect()
+
+        with self._serial_lock:
+            self.connection.read_all()  # *Clear the input buffer
+            self.last_command_time = time.time()
+            self.acknowledged = False
+            self.last_response = None
+            self.response_buffer = []
+            self.last_command = command.strip("\r\n")
             self.connection.write(command.encode("utf-8"))
 
-        except SerialException as err:
-            print(err)
-            self.robot_error = err
-
-        response_msg = ""
-        initial_command_msg = ""
-
-        time.sleep(delay)
-
-        response_msg, initial_command_msg = self.receive_command(
-            initial_command_msg=command.strip("\r\n"), timeout=timeout
-        )
-
-        # Print the full output message including the initial command that was sent
-        print_command = initial_command_msg.strip("\r\n")
-        print_response = response_msg.strip("\r\n")
-        print(
-            f"Command '{print_command}': {print_response} (elapsed time: {time.time() - send_time} seconds)"
-        )
-
-        error_codes = {
-            "21": "R axis error",
-            "14": "z axis error",
-            "02": "Invalid location",
-            "1400": "Z axis crash",
-            "T1": "Serial connection issue",
-            "ATS": "Serial connection issue",
-            "TU": "Serial connection issue",
-        }  # TODO: Import the full list from error_codes.py
-
-        if response_msg in error_codes.keys():
-            pass
-
-        return response_msg
-
-    def receive_command(self, initial_command_msg="", timeout=0):
-        """
-        Records the data outputted by the plate_crane and sets it to equal "" if no data is outputted in the provided time.
-        """
-
-        # response_string = self.connection.read_until(expected=b'\r').decode('utf-8')
-        response = ""
-        response_string = ""
-        response_command_msg = ""
-
-        start_wait = time.time()
-        while True:
-            if self.connection.in_waiting != 0:
-                response = self.connection.readlines()
-                if response[0].decode("utf-8").strip("\r\n") == initial_command_msg:
-                    response_command_msg = initial_command_msg
-                if len(response) > 1:
-                    for line_index in range(1, len(response)):
-                        response_string += "\n" + response[line_index].decode(
-                            "utf-8"
-                        ).strip("\r\n")
-                else:
-                    response_string = response[0].decode("utf-8").strip("\r\n")
-            if time.time() - start_wait > timeout or response_string != "":
+        while time.time() - self.last_command_time < timeout:
+            self.read_messages()
+            if self.acknowledged and not wait_for_response:
+                self.logger.log_debug(
+                    f"Command '{self.last_command}' acknowledged by device."
+                )
                 break
-            time.sleep(0.25)
-        return response_string, response_command_msg
+            if self.acknowledged and self.last_response:
+                if expected_response and self.last_response != expected_response:
+                    continue
+                self.logger.log_debug(
+                    f"Command '{self.last_command}' received response {self.last_response}."
+                )
+                break
+        else:
+            error_msg = (
+                f"Command '{self.last_command}' timed out after {timeout} seconds."
+            )
+            self.logger.error(error_msg)
+            raise TimeoutError(error_msg)
+
+        return self.last_response

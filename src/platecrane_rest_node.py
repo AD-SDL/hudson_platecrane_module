@@ -2,14 +2,14 @@
 """The server for the Hudson Platecrane/Sciclops that takes incoming WEI flow requests from the experiment application"""
 
 from pathlib import Path
-from typing import List, Union
+from typing import Annotated, List, Union
 
 from fastapi.datastructures import State
-from platecrane_driver.platecrane_driver import PlateCrane
-from typing_extensions import Annotated
 from wei.modules.rest_module import RESTModule
 from wei.types.step_types import StepResponse, StepSucceeded
 from wei.utils import extract_version
+
+from platecrane_driver.platecrane_driver import PlateCrane
 
 rest_module = RESTModule(
     name="platecrane_node",
@@ -27,7 +27,7 @@ rest_module.state.platecrane = None
 def platecrane_startup(state: State):
     """Handles initializing the platecrane driver."""
     state.platecrane = None
-    state.platecrane = PlateCrane(host_path=state.device)
+    state.platecrane = PlateCrane(device_path=state.device)
     print("PLATECRANE online")
 
 

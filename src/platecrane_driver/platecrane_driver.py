@@ -1,18 +1,13 @@
 """Handle Proper Interfacing with the PlateCrane"""
 
-import re
-import time
+import threading
+from typing import ClassVar, Optional, Union
 
 from platecrane_driver.resource_defs import locations, plate_definitions
 from platecrane_driver.resource_types import PlateResource
 from platecrane_driver.serial_port import (
     SerialPort,  # use when running through WEI REST clients
 )
-
-# from serial_port import SerialPort      # use when running through the driver
-# from resource_defs import locations, plate_definitions
-# from resource_types import PlateResource
-
 
 """
 # TODOs:
@@ -29,69 +24,120 @@ from platecrane_driver.serial_port import (
 class PlateCrane:
     """Python interface that allows remote commands to be executed to the plate_crane."""
 
-    __serial_port: SerialPort
+    _device: Optional[SerialPort] = None
+    """SerialPort object for communication with the PlateCrane EX device."""
+    response_code: str = "00"
+    """Response code from the PlateCrane EX device."""
+    response_meaning: str = "OK"
+    """Error message from the PlateCrane EX device."""
+    status_code: int = 0
+    """Status of the PlateCrane EX device."""
+    platecrane_current_position: Optional[list[float]] = None
+    """Current position of the PlateCrane EX device, if known"""
+    _device_lock = threading.Lock()
+    """Lock for thread-safe access to the device."""
+    initialized: bool = False
+    """Flag indicating whether the PlateCrane EX device has been initialized."""
 
-    def __init__(self, host_path="/dev/ttyUSB4", baud_rate=9600):
-        """Initialization function
+    error_codes: ClassVar[dict[str, str]] = {
+        "00": "OK",
+        "01": "Unknown or misformatted command",
+        "21": "R axis error",
+        "14": "z axis error",
+        "02": "Invalid location",
+        "1400": "Z axis crash",
+        "T1": "Serial connection issue",
+        "ATS": "Serial connection issue",
+        "TU": "Serial connection issue",
+    }
+
+    GRIPPER_LIMIT_SWITCH: int = 4
+
+    def __init__(
+        self, device_path: Union[str, int] = "/dev/ttyUSB2", baud_rate: int = 9600
+    ) -> None:
+        """Initializes the PlateCrane object.
 
         Args:
-            host_path (str): usb path of PlateCrane EX device
+            device_path (str): path or identifier for the serial port to connect to
             baud_rate (int): baud rate to use for communication with the PlateCrane EX device
 
         Returns:
             None
         """
+        self._device = SerialPort(device=device_path, baud_rate=baud_rate)
 
-        # define variables
-        self.__serial_port = SerialPort(host_path=host_path, baud_rate=baud_rate)
-        self.robot_error = "NO ERROR"
-        self.status = 0
-        self.error = ""
-
-        self.robot_status = ""
-        self.movement_state = "READY"
-        self.platecrane_current_position = None
-
-        # initialize actions
-        self.initialize()
-
-    def initialize(self):
-        """Initialization actions"""
-        self.get_status()
-        if self.robot_status == "0":
+    def initialize_platecrane(self) -> None:
+        """Connect to the PlateCrane EX device."""
+        self.update_status()
+        if self.status_code == 0:
             self.home()
         self.platecrane_current_position = self.get_position()
+        self.initialized = True
 
-    def home(self):
-        """Homes all of the axes. Returns to neutral position (above exchange)
+    def send_commmand(
+        self,
+        command: str,
+        timeout: Union[int, float] = 60,
+        wait_for_response: bool = True,
+        expected_response: Optional[str] = None,
+    ) -> str:
+        """Sends a command to the PlateCrane EX device.
 
         Args:
-            timeout (int): Seconds to wait for plate crane response after sending serial command, defaults to 28 seconds.
+            command (str): command to send to the device
+            timeout (int): timeout for the command in seconds
+            wait_for_response (bool): whether to wait for a response from the device
+            expected_response (str): expected response from the device, if applicable
 
         Returns:
-            None
+            str: response from the device, if applicable
         """
+        if not self.initialized:
+            self.initialize_platecrane()
+        with self._device_lock:
+            response = self._device.send_command(
+                command,
+                timeout=timeout,
+                wait_for_response=wait_for_response,
+                expeected_response=expected_response,
+            )
+            for response in self._device.response_buffer:
+                if response.endswith("\x10"):
+                    self.response_code = response.strip("\x10")
+                    self.response_meaning = self.error_codes.get(
+                        self.response_code, "Unknown error"
+                    )
+                    if self.response_code != "00":
+                        raise ValueError(
+                            f"Error {self.response_code}: {self.response_meaning}"
+                        )
+            return response
 
-        # Moves axes to home position
-        command = "HOME\r\n"
-        self.__serial_port.send_command(command, timeout=60)
+    def home(self) -> None:
+        """Homes all of the axes."""
 
-    def get_status(self):
+        self._device.send_command("HOME\r\n")
+
+    def halt(self) -> None:
+        """Halts all of the axes."""
+
+        self._device.send_command("HALT\r\n")
+
+    def update_status(self) -> int:
         """Checks status of plate_crane"""
-        command = "STATUS\r\n"
-        self.robot_status = self.__serial_port.send_command(command)
+        self.status_code = int(self._device.send_command("STATUS\r\n"))
+        return self.status_code
 
-    def free_joints(self):
+    def free_joints(self) -> None:
         """Unlocks the joints of the plate_crane"""
-        command = "limp TRUE\r\n"
-        self.__serial_port.send_command(command)
+        self._device.send_command("limp TRUE\r\n")
 
-    def lock_joints(self):
+    def lock_joints(self) -> None:
         """Locks the joints of the plate_crane"""
-        command = "limp FALSE\r\n"
-        self.__serial_port.send_command(command)
+        self._device.send_command("limp FALSE\r\n")
 
-    def set_speed(self, speed: int):
+    def set_speed(self, speed: int) -> None:
         """Sets the speed of the plate crane arm.
 
         Args:
@@ -100,30 +146,20 @@ class PlateCrane:
         Returns:
             None
         """
-        command = "SPEED " + str(speed)
-        self.__serial_port.send_command(command, timeout=0, delay=1)
-        self.get_position()
-        print(f"SPEED SET TO {speed}%")
+        self._device.send_command(f"SPEED {speed}\r\n")
 
-    def get_location_list(self):
+    def get_location_list(self) -> list[str]:
         """Displays all location information stored in the Plate Crane EX robot's memory"""
 
-        command = "LISTPOINTS\r\n"
-        out_msg = self.__serial_port.send_command(command)
+        self._device.send_command("LISTPOINTS\r\n", expected_response="End of List")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the status
-            find_status = re.search(exp, out_msg)
-            self.status = find_status[1]
+        return [
+            line
+            for line in self._device.response_buffer
+            if line.strip() not in ("LISTPOINTS", "End of List")
+        ]
 
-            print(self.status)
-
-        except Exception as err:
-            print("Error in get_status")
-            self.robot_error = err
-
-    def get_location_joint_values(self, location: str = None) -> list:
+    def get_location_joint_values(self, location: str) -> list:
         """Returns list of 4 joint values associated with a position name
 
         Note: right now this returns the joint values stored in the
@@ -143,12 +179,12 @@ class PlateCrane:
                 - Y (arm extension)
         """
 
-        command = "GETPOINT " + location + "\r\n"
-
-        joint_values = list(self.__serial_port.send_command(command).split(" "))
-        joint_values = [eval(x.strip(",")) for x in joint_values]
-
-        return joint_values
+        return [
+            float(joint)
+            for joint in self._device.send_command(f"GETPOINT {location}\r\n").split(
+                ", "
+            )
+        ]
 
     def get_position(self) -> list:
         """Returns list of joint values for current position of the PlateCrane EX arm
@@ -164,53 +200,36 @@ class PlateCrane:
                 - Y (arm extension)
         """
 
-        command = "GETPOS\r\n"
-
-        try:
-            # collect coordinates of current position
-            current_position = list(self.__serial_port.send_command(command).split(" "))
-            print(current_position)
-            current_position = [eval(x.strip(",")) for x in current_position]
-            print(current_position)
-        except Exception:
-            # Fall back: overlapping serial responses were detected. Wait 5 seconds then resend latest command
-            time.sleep(5)
-            current_position = list(self.__serial_port.send_command(command).split(" "))
-            current_position = [eval(x.strip(",")) for x in current_position]
-
-        return current_position
+        return [
+            float(joint)
+            for joint in self._device.send_command("GETPOS\r\n").split(", ")
+        ]
 
     def set_location(
         self,
-        location_name: str = "TEMP_0",
-        R: int = 0,
-        Z: int = 0,
-        P: int = 0,
-        Y: int = 0,
-    ):
+        location_name: str,
+        r: int = 0,
+        z: int = 0,
+        p: int = 0,
+        y: int = 0,
+    ) -> None:
         """Saves a new location into PlateCrane EX device memory
 
         Args:
             location_name (str): Name of location to be saved
-            R (int): base rotation (units: motor steps)
-            Z (int): vertical axis (units: motor steps)
-            P (int): gripper rotation (units: motor steps)
-            Y (int): arm extension (units: motor steps)
+            r (int): base rotation (units: motor steps)
+            z (int): vertical axis (units: motor steps)
+            p (int): gripper rotation (units: motor steps)
+            y (int): arm extension (units: motor steps)
 
         Returns:
             None
         """
-
-        command = "LOADPOINT %s, %s, %s, %s, %s\r\n" % (
-            location_name,
-            str(R),
-            str(Z),
-            str(P),
-            str(Y),
+        self._device.send_command(
+            f"LOADPOINT {location_name}, {r!s}, {z!s}, {p!s}, {y!s}\r\n"
         )
-        self.__serial_port.send_command(command)
 
-    def delete_location(self, location_name: str = None):
+    def delete_location(self, location_name: str) -> None:
         """Deletes an existing location from the PlateCrane EX device memory
 
         Args:
@@ -219,37 +238,32 @@ class PlateCrane:
         Returns:
             None
         """
-        if not location_name:
-            raise Exception("No location name provided")
+        self._device.send_command(f"DELETEPOINT {location_name}\r\n")
 
-        command = "DELETEPOINT %s\r\n" % (location_name)
-        self.__serial_port.send_command(command)
-
-    def gripper_open(self):
+    def gripper_open(self) -> None:
         """Opens gripper"""
 
-        command = "OPEN\r\n"
-        self.__serial_port.send_command(command)
+        self._device.send_command("OPEN\r\n")
 
-    def gripper_close(self):
+    def gripper_close(self) -> None:
         """Closes gripper"""
 
         command = "CLOSE\r\n"
-        self.__serial_port.send_command(command)
+        self._device.send_command(command)
 
-    def check_open(self):
-        """Checks if gripper is open"""
+    def gripped(self) -> bool:
+        """Checks if the gripper is currently gripping an object
 
-        command = "GETGRIPPERISOPEN\r\n"
-        self.__serial_port.send_command(command)
+        Note: This doesn't seem to work. Possibly the gripper limit switch is on a different input than what we extracted from the VB code? There seem to be 48 inputs, so guess and check might work but will take a while.
 
-    def check_closed(self):
-        """Checks if gripper is closed"""
+        Returns:
+            bool: True if gripper is gripping, False otherwise
+        """
+        return (
+            self._device.send_command(f"readinp {self.GRIPPER_LIMIT_SWITCH}\r\n") == 0
+        )
 
-        command = "GETGRIPPERISCLOSED\r\n"
-        self.__serial_port.send_command(command)
-
-    def jog(self, axis, distance) -> None:
+    def jog(self, axis: str, distance: int) -> None:
         """Moves the specified axis the specified distance.
 
         Args:
@@ -260,10 +274,10 @@ class PlateCrane:
             None
         """
 
-        command = "JOG %s,%d\r\n" % (axis, distance)
-        self.__serial_port.send_command(command)
+        command = f"JOG {axis},{distance}\r\n"
+        self._device.send_command(command)
 
-    def move_joint_angles(self, R: int, Z: int, P: int, Y: int) -> None:
+    def move_joint_angles(self, r: int, z: int, p: int, y: int) -> None:
         """Move to a specified location
 
         Args:
@@ -273,49 +287,41 @@ class PlateCrane:
             Y (int): arm extension (unit = motor steps)
         """
 
-        self.set_location("TEMP", R, Z, P, Y)
-        command = "MOVE TEMP\r\n"
-
-        try:
-            self.__serial_port.send_command(command, timeout=60)
-
-        except Exception as err:
-            print(err)
-            self.robot_error = err
-        else:
-            self.move_status = "COMPLETED"
-            pass
-
+        self.set_location("TEMP", r, z, p, y)
+        self.move_location("TEMP")
         self.delete_location("TEMP")
 
-    def move_single_axis(self, axis: str, loc: str) -> None:
+    def move_single_axis(self, axis: str, location: str) -> None:
         """Moves on a single axis, using an existing location in PlateCrane EX device memory as reference
 
         Args:
             axis (str): axis to move along
             loc (str): name of location in PlateCrane EX device memory to use as reference
 
-        Raises:
-            TODO
+        Returns:
+            None
+        """
+
+        self._device.send_command(f"MOVE_{axis.upper()} {location}\r\n")
+
+    def move_abs(
+        self,
+        axis: str,
+        value: int,
+    ) -> None:
+        """Moves a single axis to the specified absolute joint value.
+
+        Args:
+            axis (str): axis to move along
+            value (int): value to move to (units = motor steps)
 
         Returns:
             None
-
-        TODO:
-            * Handle errors using error_codes.py
-            * Reference locations in resource_defs.py, not device memory
         """
 
-        if not loc:
-            raise Exception(
-                "PlateCraneLocationException: NoneType variable is not compatible as a location"
-            )
+        self._device.send_command(f"MOVE_ABS {axis.upper()} {value}\r\n")
 
-        command = "MOVE_" + axis.upper() + " " + loc + "\r\n"
-        self.__serial_port.send_command(command)
-        self.move_status = "COMPLETED"
-
-    def move_location(self, loc: str = None) -> None:
+    def move_location(self, location: str) -> None:
         """Moves all joint to the given location.
 
         Args:
@@ -323,62 +329,28 @@ class PlateCrane:
 
         Returns:
             None
-
-        TODO:
-            * Handle the error raising within error_codes.py
         """
-        if not loc:
-            raise Exception(
-                "PlateCraneLocationException: NoneType variable is not compatible as a location"
-            )
+        self._device.send_command(f"MOVE {location}\r\n")
 
-        cmd = "MOVE " + loc + "\r\n"
-        self.__serial_port.send_command(cmd)
+    def move_safe_vertical(self) -> None:
+        """Moves the arm vertically to the safe location's Z level"""
 
-    def move_tower_neutral(self) -> None:
-        """Moves the tower to neutral position
+        self.move_abs("Z", locations["Safe"].joint_angles[1])
 
-        TODO:
-            * This still creates a TEMP position, moves to it, then deletes it after.
-                Change this, and other related methods below, to use only access
-                locations in resource_defs
-        """
-        current_pos = self.get_position()
-        self.move_joint_angles(
-            R=current_pos[0],
-            Z=locations["Safe"].joint_angles[1],
-            P=current_pos[2],
-            Y=current_pos[3],
-        )
+    def move_safe_arm_extension(self) -> None:
+        """Extends/retracts the arm to the safe location's Y level"""
 
-    def move_arm_neutral(self) -> None:
-        """Moves the arm to neutral position"""
+        self.move_abs("Y", locations["Safe"].joint_angles[3])
 
-        current_pos = self.get_position()
-        self.move_joint_angles(
-            R=current_pos[0],
-            Z=current_pos[1],
-            P=current_pos[2],
-            Y=locations["Safe"].joint_angles[3],
-        )
+    def move_safe_gripper_rotation(self) -> None:
+        """Rotates the gripper to the safe location's P level"""
 
-    def move_gripper_neutral(self) -> None:
-        """Moves the gripper to neutral position"""
+        self.move_abs("P", locations["Safe"].joint_angles[2])
 
-        self.move_single_axis("P", "Safe")
-
-        current_pos = self.get_position()
-        self.move_joint_angles(
-            R=current_pos[0],
-            Z=current_pos[1],
-            P=locations,
-            Y=current_pos[3],
-        )
-
-    def move_joints_neutral(self) -> None:
-        """Moves all joints neutral position"""
-        self.move_arm_neutral()
-        self.move_tower_neutral()
+    def move_safe(self) -> None:
+        """Moves all joints to match the safe location"""
+        self.move_safe_arm_extension()
+        self.move_safe_vertical()
 
     def pick_plate_safe_approach(
         self,
@@ -396,7 +368,6 @@ class PlateCrane:
         Returns:
             None
         """
-        print("PICK PLATE SAFE APPROACH CALLED")
 
         # open the gripper
         self.gripper_open()
@@ -404,46 +375,46 @@ class PlateCrane:
         # Rotate base (R axis) toward plate location
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=locations[source].joint_angles[0],
-            Z=current_pos[1],
-            P=current_pos[2],
-            Y=current_pos[3],
+            r=locations[source].joint_angles[0],
+            z=current_pos[1],
+            p=current_pos[2],
+            y=current_pos[3],
         )
 
         # Rotate gripper
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=current_pos[1],
-            P=locations[source].joint_angles[2],
-            Y=current_pos[3],
+            r=current_pos[0],
+            z=current_pos[1],
+            p=locations[source].joint_angles[2],
+            y=current_pos[3],
         )
 
         # Lower z axis to safe_approach_z height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=locations[source].safe_approach_height,
-            P=current_pos[2],
-            Y=current_pos[3],
+            r=current_pos[0],
+            z=locations[source].safe_approach_height,
+            p=current_pos[2],
+            y=current_pos[3],
         )
 
         # extend arm over plate and rotate gripper to correct orientation
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=current_pos[1],
-            P=current_pos[2],
-            Y=locations[source].joint_angles[3],
+            r=current_pos[0],
+            z=current_pos[1],
+            p=current_pos[2],
+            y=locations[source].joint_angles[3],
         )
 
         # Lower arm (z axis) to correct plate grip height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=locations[source].joint_angles[1] + grip_height_in_steps,
-            P=current_pos[2],
-            Y=current_pos[3],
+            r=current_pos[0],
+            z=locations[source].joint_angles[1] + grip_height_in_steps,
+            p=current_pos[2],
+            y=current_pos[3],
         )
 
         # grip the plate
@@ -452,24 +423,24 @@ class PlateCrane:
         # Move arm with plate back to safe approach height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=locations[source].safe_approach_height,
-            P=current_pos[2],
-            Y=current_pos[3],
+            r=current_pos[0],
+            z=locations[source].safe_approach_height,
+            p=current_pos[2],
+            y=current_pos[3],
         )
 
         # retract arm (Y axis) as much as possible (to same Y axis value as Safe location)
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=current_pos[1],
-            P=current_pos[2],
-            Y=locations["Safe"].joint_angles[3],
+            r=current_pos[0],
+            z=current_pos[1],
+            p=current_pos[2],
+            y=locations["Safe"].joint_angles[3],
         )
 
         # move rest of joints to neutral location
-        self.move_tower_neutral()
-        self.move_arm_neutral()
+        self.move_safe_vertical()
+        self.move_safe_arm_extension()
 
     def place_plate_safe_approach(
         self,
@@ -490,46 +461,46 @@ class PlateCrane:
         # Rotate base (R axis) toward target location
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=locations[target].joint_angles[0],
-            Z=current_pos[1],
-            P=current_pos[2],
-            Y=current_pos[3],
+            r=locations[target].joint_angles[0],
+            z=current_pos[1],
+            p=current_pos[2],
+            y=current_pos[3],
         )
 
         # Rotate gripper to correct orientation
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=current_pos[1],
-            P=locations[target].joint_angles[2],
-            Y=current_pos[3],
+            r=current_pos[0],
+            z=current_pos[1],
+            p=locations[target].joint_angles[2],
+            y=current_pos[3],
         )
 
         # Lower z axis to safe_approach_z height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=locations[target].safe_approach_height,
-            P=current_pos[2],
-            Y=current_pos[3],
+            r=current_pos[0],
+            z=locations[target].safe_approach_height,
+            p=current_pos[2],
+            y=current_pos[3],
         )
 
         # extend arm over plate
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=current_pos[1],
-            P=current_pos[2],
-            Y=locations[target].joint_angles[3],
+            r=current_pos[0],
+            z=current_pos[1],
+            p=current_pos[2],
+            y=locations[target].joint_angles[3],
         )
 
         # lower arm (z axis) to correct plate grip height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=locations[target].joint_angles[1] + grip_height_in_steps,
-            P=current_pos[2],
-            Y=current_pos[3],
+            r=current_pos[0],
+            z=locations[target].joint_angles[1] + grip_height_in_steps,
+            p=current_pos[2],
+            y=current_pos[3],
         )
 
         self.gripper_open()
@@ -537,24 +508,24 @@ class PlateCrane:
         # Back away using safe approach path
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=locations[target].safe_approach_height,
-            P=current_pos[2],
-            Y=current_pos[3],
+            r=current_pos[0],
+            z=locations[target].safe_approach_height,
+            p=current_pos[2],
+            y=current_pos[3],
         )
 
         # retract arm (Y axis) as much as possible (to same Y axis value as Safe location)
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=current_pos[1],
-            P=current_pos[2],
-            Y=locations["Safe"].joint_angles[3],
+            r=current_pos[0],
+            z=current_pos[1],
+            p=current_pos[2],
+            y=locations["Safe"].joint_angles[3],
         )
 
         # move arm to safe location
-        self.move_tower_neutral()
-        self.move_arm_neutral()
+        self.move_safe_vertical()
+        self.move_safe_arm_extension()
 
     def pick_plate_direct(
         self,
@@ -589,10 +560,10 @@ class PlateCrane:
         # Rotate R axis (base rotation) over the plate
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=locations[source].joint_angles[0],
-            Z=current_pos[1],
-            P=current_pos[2],
-            Y=current_pos[3],
+            r=locations[source].joint_angles[0],
+            z=current_pos[1],
+            p=current_pos[2],
+            y=current_pos[3],
         )
 
         if source_type == "stack":
@@ -601,10 +572,10 @@ class PlateCrane:
 
             # move the arm directly above the stack
             self.move_joint_angles(
-                R=locations[source].joint_angles[0],
-                Z=current_pos[1],
-                P=locations[source].joint_angles[2],
-                Y=locations[source].joint_angles[3],
+                r=locations[source].joint_angles[0],
+                z=current_pos[1],
+                p=locations[source].joint_angles[2],
+                y=locations[source].joint_angles[3],
             )
 
             # decrease the plate crane speed
@@ -612,12 +583,12 @@ class PlateCrane:
 
             # move down in z height to tap the top of the plates in stack
             self.move_joint_angles(
-                R=locations[source].joint_angles[0],
-                Z=locations[source].joint_angles[
+                r=locations[source].joint_angles[0],
+                z=locations[source].joint_angles[
                     1
                 ],  # this is the only axis that should need to move
-                P=locations[source].joint_angles[2],
-                Y=locations[source].joint_angles[3],
+                p=locations[source].joint_angles[2],
+                y=locations[source].joint_angles[3],
             )
 
             # set plate crane back to full speed
@@ -650,10 +621,10 @@ class PlateCrane:
             self.gripper_open()
 
             self.move_joint_angles(
-                R=locations[source].joint_angles[0],
-                Z=locations[source].joint_angles[1] + grip_height_in_steps,
-                P=locations[source].joint_angles[2],
-                Y=locations[source].joint_angles[3],
+                r=locations[source].joint_angles[0],
+                z=locations[source].joint_angles[1] + grip_height_in_steps,
+                p=locations[source].joint_angles[2],
+                y=locations[source].joint_angles[3],
             )
 
         # open the gripper
@@ -667,8 +638,8 @@ class PlateCrane:
             self.jog("Z", 100)
 
         # return arm to safe location
-        self.move_tower_neutral()
-        self.move_arm_neutral()
+        self.move_safe_vertical()
+        self.move_safe_arm_extension()
 
     def place_plate_direct(
         self,
@@ -694,19 +665,19 @@ class PlateCrane:
         # Rotate base (R axis) to target location
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=locations[target].joint_angles[0],
-            Z=current_pos[1],
-            P=current_pos[2],
-            Y=current_pos[3],
+            r=locations[target].joint_angles[0],
+            z=current_pos[1],
+            p=current_pos[2],
+            y=current_pos[3],
         )
 
         # Extend arm over plate location (Y axis) and rotate gripper to correct orientation (P axis)
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=current_pos[1],
-            P=locations[target].joint_angles[2],
-            Y=locations[target].joint_angles[3],
+            r=current_pos[0],
+            z=current_pos[1],
+            p=locations[target].joint_angles[2],
+            y=locations[target].joint_angles[3],
         )
 
         if target_type == "stack":
@@ -716,10 +687,10 @@ class PlateCrane:
         # Lower arm (z axis) to plate grip height
         current_pos = self.get_position()
         self.move_joint_angles(
-            R=current_pos[0],
-            Z=locations[target].joint_angles[1] + grip_height_in_steps,
-            P=current_pos[2],
-            Y=current_pos[3],
+            r=current_pos[0],
+            z=locations[target].joint_angles[1] + grip_height_in_steps,
+            p=current_pos[2],
+            y=current_pos[3],
         )
 
         if target_type == "stack":
@@ -729,8 +700,8 @@ class PlateCrane:
         # open gripper to release the plate
         self.gripper_open()
 
-        self.move_tower_neutral()
-        self.move_joints_neutral()
+        self.move_safe_vertical()
+        self.move_safe()
 
     def _is_location_joint_values(self, location: str, name: str = "temp") -> str:
         """
@@ -954,10 +925,3 @@ class PlateCrane:
                 )
         else:
             raise Exception("Target location type not defined correctly")
-
-
-if __name__ == "__main__":
-    """
-    Runs given function.
-    """
-    s = PlateCrane("/dev/ttyUSB2")

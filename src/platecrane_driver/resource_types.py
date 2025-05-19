@@ -1,16 +1,16 @@
 """This module contains the Pydantic models for the PlateCrane resource types"""
 
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel
 
 
-class Location(BaseModel):
+class PlateCraneLocation(BaseModel):
     """A location accessible by the PlateCrane EX"""
 
     name: str
     """Internal name of the location"""
-    joint_angles: List[int]
+    joint_angles: list[int]
     """List of 4 joint angles (unit: integer stepper values)"""
     location_type: str
     """Type of location, either stack or nest. This will be used to determine gripper path for interactions with the location"""
@@ -41,8 +41,8 @@ class PlateResource(BaseModel):
     lid_removal_grip_height: Optional[float] = None
     """The height at which to grip the lid when removing it, measured from the bottom of the lidded plate"""
 
+    @staticmethod
     def convert_to_steps(plate_measurement_in_mm: float) -> int:
         """Converts plate measurements in mm to PlateCrane EX motor steps on the z-axis"""
         steps_per_mm = 80.5
-        steps = int(plate_measurement_in_mm * steps_per_mm)
-        return steps
+        return int(plate_measurement_in_mm * steps_per_mm)
