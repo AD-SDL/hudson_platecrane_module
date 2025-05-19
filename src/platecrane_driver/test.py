@@ -1,11 +1,15 @@
 # Noqa
-import platecrane_driver
+# import platecrane_driver
+# from .platecrane_driver import Plate
+
+from platecrane_driver import PlateCrane
 
 if __name__ == "__main__":
     """
     Runs given function.
     """
-    s = platecrane_driver.PlateCrane("/dev/ttyUSB2")
+    # s = platecrane_driver.PlateCrane("/dev/ttyUSB2")
+    s = PlateCrane("/dev/ttyUSB2")
     # s.initialize()
     # s.home()
     stack4 = "Stack4"
@@ -18,6 +22,148 @@ if __name__ == "__main__":
     sealer = "SealerNest"
     # s.move_location("Safe")
 
+    print("initialized the plate crane")
+
+    # print(s.get_position())
+    # [53226, -27372, -431, 882]
+
+    # [53225, -27372, -431, 829]
+
+    # [53225, -27960, -431, 855]
+
+    #   - name: Move plate from Hidex.Nest to Sealer
+    # module: platecrane
+    # action: transfer
+    # args:
+    #   source: "Hidex.Nest"
+    #   target: "Sealer.Nest"
+    #   plate_type: "flat_bottom_96well"
+    #   height_offset: 8
+    # checks: null
+    # comment: Place plate to Sealer
+
+    # s.transfer(
+    #     source="Peeler.Nest",
+    #     target="Solo.Position2AfterPeeler",
+    #     plate_type = "flat_bottom_96well",
+    # )
+
+    #########
+    # s.transfer(
+    #     source="Solo.Position2",
+    #     target="Hidex.Nest",
+    #     plate_type = "flat_bottom_96well",
+    #     height_offset = 8,
+    # )
+
+    # s.transfer(
+    #     source="Stack1",
+    #     target="Solo.Position2",
+    #     plate_type = "flat_bottom_96well",
+    # )
+
+    # s.remove_lid(
+    #     source="Solo.Position2",
+    #     target="Stack4",
+    #     plate_type = "flat_bottom_96well",
+    # )
+
+    # s.transfer(
+    #     source="Solo.Position2",
+    #     target="Hidex.Nest",
+    #     plate_type = "flat_bottom_96well",
+    #     height_offset = 8,
+    # )
+
+    # s.transfer(
+    #     source="Hidex.Nest",
+    #     target="Sealer.Nest",
+    #     plate_type = "flat_bottom_96well",
+    #     height_offset = 8,
+    # )
+
+    # s.transfer(
+    #     source="Sealer.Nest",
+    #     target="Liconic.Nest",
+    #     plate_type = "flat_bottom_96well",
+    # )
+
+    # s.transfer(
+    #     source="Liconic.Nest",
+    #     target="Peeler.Nest",
+    #     plate_type = "flat_bottom_96well",
+    # )
+
+    # s.transfer(
+    #     source="Peeler.Nest",
+    #     target="Solo.Position2",
+    #     plate_type = "flat_bottom_96well",
+    # )
+
+    s.transfer(
+        source="Solo.Position2",
+        target="Hidex.Nest",
+        plate_type="flat_bottom_96well",
+        height_offset=8,
+    )
+
+    # s.transfer(
+    #     source="Hidex.Nest",
+    #     target="Stack5",
+    #     plate_type = "flat_bottom_96well",
+    #     height_offset = 8,
+    # )
+
+    # s.transfer(
+    #     source="Solo.Position2",
+    #     target="Peeler.Nest",
+    #     plate_type = "flat_bottom_96well",
+    # )
+
+    # s.transfer(
+    #     source="Peeler.Nest",
+    #     target="Solo.Position2AfterPeeler",
+    #     plate_type = "flat_bottom_96well",
+    # )
+
+    # s.transfer(
+    #     source="Solo.Position2",
+    #     target="Peeler.Nest",
+    #     plate_type = "flat_bottom_96well",
+    # )
+
+    # s.transfer(
+    #     source="Solo.Position2",
+    #     target="Sealer.Nest",
+    #     plate_type = "flat_bottom_96well",
+    # )
+
+    # s.transfer(
+    #     source="Solo.Position2",
+    #     target="LidNest1",
+    #     plate_type = "flat_bottom_96well",
+    # )
+
+    # s.replace_lid(
+    #     source="LidNest1",
+    #     target="Solo.Position2",
+    #     plate_type="flat_bottom_96well"
+    # )
+
+    # s.transfer(
+    #     source="Solo.Position2",
+    #     target="Hidex.Nest",
+    #     plate_type = "flat_bottom_96well",
+    #     height_offset = 8,
+    # )
+
+    # s.transfer(
+    #     source="Stack1",
+    #     target="Hidex.Nest",
+    #     plate_type = "flat_bottom_96well",
+    #     height_offset = 8,
+    # )
+
     # print(s.lid_height)
 
     # s.home()
@@ -29,7 +175,10 @@ if __name__ == "__main__":
     # print(s.get_location_list())
     # s.set_location("Solo.Position2", 53182, -27797, -413, 834)
     # s.set_location("HidexSafe", 209959, -2500, 490, -262)
-    # s.transfer("Solo.Position1","Solo.Position2", plate_type="flat_bottom_96well") # works if don't specify plate type (picks up lower)
+    # s.transfer("Solo.Position2","Sealer.Nest", plate_type="flat_bottom_96well")
+    # s.transfer("Sealer.Nest","Liconic.Nest", plate_type="flat_bottom_96well")
+
+    # works if don't specify plate type (picks up lower)
     # s.transfer("Stack1","Solo.Position1", plate_type="flat_bottom_96well", has_lid=True) # works if don't specify plate type (picks up lower)
     # s.transfer("Solo.Position1","Hidex.Nest", plate_type="flat_bottom_96well", height_offset = 8) # works if don't specify plate type (picks up lower)
 
@@ -48,9 +197,9 @@ if __name__ == "__main__":
     # s.transfer("Solo.Position2", "Stack1", plate_type="flat_bottom_96well", has_lid=False)
 
     # s.set_speed(100)
-    s.transfer(
-        "Stack1", "Solo.Position2", plate_type="flat_bottom_96well", has_lid=False
-    )
+    # s.transfer(
+    #     "Stack1", "Solo.Position2", plate_type="flat_bottom_96well", has_lid=False
+    # )
     # s.transfer("Solo.Position2", "Stack1", plate_type="flat_bottom_96well", has_lid=False)
 
     # s.transfer("Peeler.Nest", "Hidex.Nest", plate_type="flat_bottom_96well", has_lid=False, height_offset =8)
@@ -66,7 +215,7 @@ if __name__ == "__main__":
 
     # s.transfer("Solo.Position2","Solo.Position1", source_type="stack", target_type="stack", plate_type="flat_bottom_96", height_offset=0)
     # s.transfer("Stack1","Solo.Position2",source_type="stack",target_type="stack", plate_type="96_well") # doesn't work with plate type through driver  (picks up higher)
-    # s.get_position()
+    # print(s.get_position())
 
     # s.transfer("Solo.Position2","Solo.Position1", source_type="stack", target_type="module", plate_type="96_well", height_offset=-250)
     # s.transfer("Stack1","Solo.Position2",source_type="stack",target_type="stack", plate_type="96_well") # doesn't work with plate type through driver  (picks up higher)
@@ -114,9 +263,13 @@ if __name__ == "__main__":
     # s.transfer("LidNest3". "Solo.Position2", source_type="stack", target_type="stack")
     # s.transfer("PeelerNest","Stack2",source_type="stack",target_type="stack")
 
-    # s.transfer("PeelerNest","Stack2",source_type="stack",target_type="stack")
-
-    ###
+    # # s.transfer("PeelerNest","Stack2",sou    s.transfer(
+    #     source="Solo.Position2",
+    #     target="Hidex.Nest",
+    #     plate_type = "flat_bottom_96well",
+    #     height_offset=8,
+    # )
+    # ###
     # s.transfer("Solo.Position1","Hidex.Nest",source_type="stack",target_type="module", height_offset=700)   # SOLO 1 to Hidex
 
     # s.transfer("Hidex.Nest","Solo.Position1",source_type="module",target_type="module")   # Stack 4 to SOLO 1
@@ -129,7 +282,6 @@ if __name__ == "__main__":
 
     # s.set_location("Sealer.Nest", 117468, 1220, -4748, 4550)
 
-    # print(s.get_position())
     # s.delete_location("Temp_Lid_Source_Loc")
     # s.delete_location("Temp_Lid_Target_Loc")
     # s.delete_location("Temp_Lid_Source_loc")
@@ -159,6 +311,7 @@ if __name__ == "__main__":
 
     # s.transfer("Hidex.Nest","LidNest1",source_type="module",target_type="stack", height_offset=650)
 
+    # s.transfer("Peeler.Nest", "Hidex.Nest", plate_type="flat_bottom_96well", has_lid=False, height_offset =8)
     # s.transfer("LidNest1","LidNest2",source_type="stack",target_type="stack")
 
     # s.transfer("LidNest2","LidNest3",source_type="stack",target_type="stack")

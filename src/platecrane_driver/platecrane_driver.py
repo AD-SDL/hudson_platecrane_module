@@ -960,4 +960,4 @@ if __name__ == "__main__":
     """
     Runs given function.
     """
-    s = PlateCrane("/dev/ttyUSB4")
+    s = PlateCrane("/dev/ttyUSB2")

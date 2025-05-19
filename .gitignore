@@ -161,3 +161,6 @@ cython_debug/
 
 # WEI
 .wei
+
+# VS Code
+.vscode
