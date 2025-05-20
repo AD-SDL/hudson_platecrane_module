@@ -2,6 +2,7 @@
 
 import threading
 import time
+from contextlib import nullcontext
 from typing import Optional, Union
 
 import serial
@@ -103,6 +104,7 @@ class SerialPort:
         wait_for_response: bool = True,
         timeout: Union[float, int] = 60,
         expected_response: Optional[str] = None,
+        bypass_locks: bool = False,
     ) -> str:
         """
         Sends a command to the device and waits for a response.
@@ -111,6 +113,7 @@ class SerialPort:
         - wait_for_response (bool): Whether to wait for a response from the device. Default is True.
         - timeout (float): The time to wait for a response before timing out. Default is 60 seconds.
         - expected_response (str): The expected response from the device. Default is None.
+        - bypass_locks (bool): Whether to bypass the serial lock. Default is False.
         Returns:
         - str: The last response from the device.
         """
@@ -121,7 +124,7 @@ class SerialPort:
         if not self.connection or not self.connection.is_open:
             self.connect()
 
-        with self._serial_lock:
+        with self._serial_lock if not bypass_locks else nullcontext():
             self.connection.read_all()  # *Clear the input buffer
             self.last_command_time = time.time()
             self.acknowledged = False
