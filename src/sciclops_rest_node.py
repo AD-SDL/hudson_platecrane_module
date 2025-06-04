@@ -5,13 +5,13 @@ from pathlib import Path
 from typing import Union
 
 from fastapi.datastructures import State
-from platecrane_driver.sciclops_driver import SCICLOPS
-from platecrane_driver.resource_types import Labware, Falcon_96_well
 from typing_extensions import Annotated
 from wei.modules.rest_module import RESTModule
-from wei.types.module_types import ModuleStatus
 from wei.types.step_types import StepSucceeded
 from wei.utils import extract_version
+
+from platecrane_driver.resource_types import Falcon_96_well, Labware
+from platecrane_driver.sciclops_driver import SCICLOPS
 
 rest_module = RESTModule(
     name="sciclops_node",
@@ -36,7 +36,6 @@ def sciclops_startup(state: State):
     print("SCICLOPS online")
 
 
-
 @rest_module.action()
 def home(state: State):
     """Homes the sciclops"""
@@ -49,7 +48,9 @@ def transfer_labware(
     state: State,
     source: Annotated[str, "The source location to pick the labware"],
     target: Annotated[str, "The target location to place the labware"],
-    plate: Annotated[Union[dict, Labware], "Information about the plate to transfer"] = Falcon_96_well,
+    plate: Annotated[
+        Union[dict, Labware], "Information about the plate to transfer"
+    ] = Falcon_96_well,
     has_lid: Annotated[bool, "Whether the labware has a lid currently"] = True,
 ):
     """Get a plate from a stack position and move it to transfer point (or trash)"""
@@ -63,12 +64,17 @@ def transfer_labware(
     )
     return StepSucceeded()
 
+
 @rest_module.action(name="pick_labware")
 def pick_labware(
     state: State,
     source: Annotated[str, "The source location to pick the labware"],
-    plate: Annotated[Union[dict, Labware], "Information about the plate to pick"] = Falcon_96_well,
-    gentle_lift: Annotated[bool, "Whether to gently lift (useful for separating lids)"] = False,
+    plate: Annotated[
+        Union[dict, Labware], "Information about the plate to pick"
+    ] = Falcon_96_well,
+    gentle_lift: Annotated[
+        bool, "Whether to gently lift (useful for separating lids)"
+    ] = False,
 ):
     """Pick a plate from a stack position"""
     plate = Labware.model_validate(plate)
@@ -80,11 +86,14 @@ def pick_labware(
     )
     return StepSucceeded()
 
+
 @rest_module.action(name="place_labware")
 def place_labware(
     state: State,
     target: Annotated[str, "The target location to place the labware"],
-    plate: Annotated[Union[dict, Labware], "Information about the plate to place"] = Falcon_96_well,
+    plate: Annotated[
+        Union[dict, Labware], "Information about the plate to place"
+    ] = Falcon_96_well,
 ):
     """Place a plate at a stack position"""
     plate = Labware.model_validate(plate)
@@ -94,11 +103,14 @@ def place_labware(
     )
     return StepSucceeded()
 
+
 @rest_module.action(name="remove_lid")
 def remove_lid(
     state: State,
     source: Annotated[str, "The source location to pick the lid from"],
-    plate: Annotated[Union[dict, Labware], "Information about the plate and lid"] = Falcon_96_well,
+    plate: Annotated[
+        Union[dict, Labware], "Information about the plate and lid"
+    ] = Falcon_96_well,
     target: Annotated[str, "The target location to place the lid"] = None,
 ):
     """Remove a lid from a plate"""
@@ -110,11 +122,14 @@ def remove_lid(
     )
     return StepSucceeded()
 
+
 @rest_module.action(name="replace_lid")
 def replace_lid(
     state: State,
     source: Annotated[str, "The source location to pick the lid from"],
-    plate: Annotated[Union[dict, Labware], "Information about the plate and lid"] = Falcon_96_well,
+    plate: Annotated[
+        Union[dict, Labware], "Information about the plate and lid"
+    ] = Falcon_96_well,
     target: Annotated[str, "The target location to place the lid"] = None,
 ):
     """Replace a lid on a plate"""
@@ -126,11 +141,14 @@ def replace_lid(
     )
     return StepSucceeded()
 
+
 @rest_module.action(name="remove_and_replace_lid")
 def remove_and_replace_lid(
     state: State,
     source: Annotated[str, "The source location to pick the lid from"],
-    plate: Annotated[Union[dict, Labware], "Information about the plate and lid"] = Falcon_96_well,
+    plate: Annotated[
+        Union[dict, Labware], "Information about the plate and lid"
+    ] = Falcon_96_well,
     target: Annotated[str, "The target location to place the lid"] = None,
 ):
     """Remove a lid from a plate and place it on a different plate"""
@@ -142,11 +160,14 @@ def remove_and_replace_lid(
     )
     return StepSucceeded()
 
+
 @rest_module.action(name="pick_lid")
 def pick_lid(
     state: State,
     source: Annotated[str, "The source location to pick the lid from"],
-    plate: Annotated[Union[dict, Labware], "Information about the lid being picked"] = Falcon_96_well,
+    plate: Annotated[
+        Union[dict, Labware], "Information about the lid being picked"
+    ] = Falcon_96_well,
 ):
     """Pick a lid from a plate at a location"""
     plate = Labware.model_validate(plate)
@@ -156,11 +177,14 @@ def pick_lid(
     )
     return StepSucceeded()
 
+
 @rest_module.action(name="place_lid")
 def place_lid(
     state: State,
     target: Annotated[str, "The target location to place the lid"],
-    plate: Annotated[Union[dict, Labware], "Information about the lid being placed"] = Falcon_96_well,
+    plate: Annotated[
+        Union[dict, Labware], "Information about the lid being placed"
+    ] = Falcon_96_well,
 ):
     """Place a lid on a plate at a location"""
     plate = Labware.model_validate(plate)
@@ -169,6 +193,7 @@ def place_lid(
         plate=plate,
     )
     return StepSucceeded()
+
 
 @rest_module.action(name="move_to_location")
 def move_to_location(
@@ -179,6 +204,7 @@ def move_to_location(
     state.sciclops.move_loc(loc=location)
     return StepSucceeded()
 
+
 @rest_module.action(name="move_above_location")
 def move_above_location(
     state: State,
@@ -187,6 +213,7 @@ def move_above_location(
     """Move the sciclops above a specific location at a safe height"""
     state.sciclops.move_above_loc(loc=location)
     return StepSucceeded()
+
 
 @rest_module.action(name="move_to_location_with_height")
 def move_to_location_with_height(
@@ -198,11 +225,16 @@ def move_to_location_with_height(
     state.sciclops.move_loc_at_height(loc=location, height=height)
     return StepSucceeded()
 
+
 @rest_module.action(name="set_limp_mode")
-def limp(state: State, limp: Annotated[bool, "Whether to set the sciclops in limp mode or not"] = True):
+def limp(
+    state: State,
+    limp: Annotated[bool, "Whether to set the sciclops in limp mode or not"] = True,
+):
     """Frees or locks the joints of the sciclops, allowing it to be moved manually"""
     state.sciclops.limp(limp_bool=limp)
     return StepSucceeded()
+
 
 @rest_module.action(name="jog")
 def jog(
@@ -214,6 +246,7 @@ def jog(
     state.sciclops.jog(axis=axis, distance=distance)
     return StepSucceeded()
 
+
 @rest_module.action(name="set_speed")
 def set_speed(
     state: State,
@@ -223,6 +256,7 @@ def set_speed(
     state.sciclops.set_speed(speed=speed)
     return StepSucceeded()
 
+
 @rest_module.action(name="open_gripper")
 def open_gripper(
     state: State,
@@ -230,6 +264,7 @@ def open_gripper(
     """Open the gripper of the sciclops"""
     state.sciclops.open()
     return StepSucceeded()
+
 
 @rest_module.action(name="close_gripper")
 def close_gripper(
@@ -239,6 +274,7 @@ def close_gripper(
     state.sciclops.close()
     return StepSucceeded()
 
+
 @rest_module.action(name="get_position")
 def get_position(
     state: State,
@@ -247,10 +283,11 @@ def get_position(
     try:
         position = state.sciclops.get_position()
         return StepSucceeded(result=position)
-    except Exception as e: # * Sometimes the first call to get_position fails due
+    except Exception:  # * Sometimes the first call to get_position fails due
         position = state.sciclops.get_position()
         return StepSucceeded(
             result=position,
         )
+
 
 rest_module.start()

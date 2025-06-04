@@ -2,13 +2,15 @@
 
 import re
 import time
-from typing import Optional, Union
+from typing import Union
 
 import usb.core
 import usb.util
 
 from platecrane_driver.resource_types import Labware
+
 # from resource_types import Labware
+
 
 class SCICLOPS:
     """
@@ -78,41 +80,41 @@ class SCICLOPS:
             "stack1": {
                 # Z:-397.1688, R:134.9400, Y:172.5228, P:9.7159
                 # "pos": {"Z":-397.6188, "R":133.5247, "Y":172.5228, "P":9.7159},
-                "pos": {"Z":-397.1688, "R":134.7400, "Y":172.5228, "P":9.7159},
+                "pos": {"Z": -397.1688, "R": 134.7400, "Y": 172.5228, "P": 9.7159},
                 "type": "stack",
             },
             "stack2": {
                 # "pos": {"Z":-395.2313, "R":151.3112, "Y":173.0375, "P":11.392},
-                "pos": {"Z":-397.2875, "R":152.8218, "Y":172.5166, "P":9.7159},
+                "pos": {"Z": -397.2875, "R": 152.8218, "Y": 172.5166, "P": 9.7159},
                 "type": "stack",
             },
             "stack3": {  # Z:-397.3563, R:170.8571, Y:172.5166, P:9.7159
                 # "pos": {"Z":-397.5500, "R":169.4188, "Y":171.8531, "P":10.2557},
-                "pos": {"Z":-397.3563, "R":170.8571, "Y":172.5166, "P":9.7159},
+                "pos": {"Z": -397.3563, "R": 170.8571, "Y": 172.5166, "P": 9.7159},
                 "type": "stack",
             },
-            "stack4": {   # Z:-396.1000, R:188.8588, Y:172.5166, P:9.7159
+            "stack4": {  # Z:-396.1000, R:188.8588, Y:172.5166, P:9.7159
                 # "pos": {"Z":-397.4563, "R":187.3500, "Y":171.2330, "P":10.2557},
-                "pos": {"Z":-396.1000, "R":188.6588, "Y":172.5166, "P":9.7159},
+                "pos": {"Z": -396.1000, "R": 188.6588, "Y": 172.5166, "P": 9.7159},
                 "type": "stack",
             },
             "stack5": {  # Z:-394.4875, R:206.8553, Y:172.5166, P:9.7159
                 # "pos": {"Z":-397.8000, "R":205.3147, "Y":171.2330, "P":10.2557},
-                "pos": {"Z":-394.4875, "R":206.6553, "Y":172.5166, "P":9.7159},
+                "pos": {"Z": -394.4875, "R": 206.6553, "Y": 172.5166, "P": 9.7159},
                 "type": "stack",
             },
             "lidnest1": {
                 # Z:-385.0500, R:170.6876, Y:27.2231, P:10.2841
                 # "pos": {"Z":-388.4625, "R":169.4965, "Y":25.6853, "P":10.2557}
                 # "pos": {"Z":-388.8563, "R":170.8412, "Y":25.6977, "P":10.2841},
-                "pos": {"Z":-388.8563, "R":170.6876, "Y":27.2231, "P":10.2841},
-                "type": "nest"
+                "pos": {"Z": -388.8563, "R": 170.6876, "Y": 27.2231, "P": 10.2841},
+                "type": "nest",
             },
             "lidnest2": {  # Z:-384.9375, R:202.8318, Y:26.8139, P:10.2841
                 # "pos": {"Z":-388.4625, "R":201.6388, "Y":25.6853, "P":10.2557},
                 # "pos": {"Z":-388.4625, "R":203.1618, "Y":26.1503, "P":10.2557},
-                "pos": {"Z":-388.4625, "R":202.8318, "Y":26.8139, "P":10.2841},
-                "type": "nest"
+                "pos": {"Z": -388.4625, "R": 202.8318, "Y": 26.8139, "P": 10.2841},
+                "type": "nest",
             },
             # "exchange": {
             #     # "pos": {"Z": -417.2938, "R": 305.5588, "Y": 143.8300, "P": 198.2102 - 181},
@@ -122,12 +124,12 @@ class SCICLOPS:
             "exchange": {  # new Z:-415.5188, R:288.8029, Y:193.2781, P:22.7841
                 # "pos": {"Z": -417.2938, "R": 305.5588, "Y": 143.8300, "P": 198.2102 - 181},
                 # "pos": {"Z":-415.8438, "R":288.9053, "Y":192.5526, "P":22.7841},
-                "pos": {"Z":-415.8438, "R":288.8029, "Y":193.2781, "P":22.7841},
-                "type": "nest"
+                "pos": {"Z": -415.8438, "R": 288.8029, "Y": 193.2781, "P": 22.7841},
+                "type": "nest",
             },
             "neutral": {
                 "pos": {"Z": 23.5188, "R": 109.2741, "Y": 32.7484, "P": 98.2955},
-                "type": "point"
+                "type": "point",
             },
         }
 
@@ -213,6 +215,7 @@ class SCICLOPS:
             return self.current_pos
         except Exception:
             import traceback
+
             traceback.print_exc()
 
     def get_status(self):
@@ -656,7 +659,13 @@ class SCICLOPS:
             self.locations[loc]["pos"]["Y"],
         )
 
-    def pick_labware(self, location_name: str, grip_height: float, labware_height: float, gentle_lift: bool = False):
+    def pick_labware(
+        self,
+        location_name: str,
+        grip_height: float,
+        labware_height: float,
+        gentle_lift: bool = False,
+    ):
         """
         Grabs labware from the provided location
         """
@@ -677,7 +686,9 @@ class SCICLOPS:
             self.open()
             self.jog("Z", -2.5 - labware_height + grip_height)
         elif location.get("type") == "nest":
-            self.move_loc_at_height(location_name, location["pos"]["Z"] + grip_height + 10)
+            self.move_loc_at_height(
+                location_name, location["pos"]["Z"] + grip_height + 10
+            )
             self.set_speed(10)
             self.move_loc_at_height(location_name, location["pos"]["Z"] + grip_height)
         self.close()
@@ -710,7 +721,9 @@ class SCICLOPS:
             self.set_speed(100)
             self.jog("Z", 1000)
         elif location.get("type") == "nest":
-            self.move_loc_at_height(location_name, location["pos"]["Z"] + grip_height + 10)
+            self.move_loc_at_height(
+                location_name, location["pos"]["Z"] + grip_height + 10
+            )
             self.set_speed(1)
             self.move_loc_at_height(location_name, location["pos"]["Z"] + grip_height)
             self.open()
@@ -718,9 +731,13 @@ class SCICLOPS:
             self.jog("Z", 1000)
         self.move_above_loc(location_name)
 
-
-
-    def transfer_labware(self, source: str, plate: Union[Labware, dict], target: str, has_lid: bool = True):
+    def transfer_labware(
+        self,
+        source: str,
+        plate: Union[Labware, dict],
+        target: str,
+        has_lid: bool = True,
+    ):
         """
         Moves labware from a source location to a target location
         """
@@ -730,7 +747,7 @@ class SCICLOPS:
         self.pick_labware(
             location_name=source,
             grip_height=plate.grip_height,
-            labware_height=plate.height_with_lid if has_lid else plate.height
+            labware_height=plate.height_with_lid if has_lid else plate.height,
         )
         self.place_labware(
             location_name=target,
@@ -767,7 +784,7 @@ class SCICLOPS:
         self.pick_labware(
             location_name=source,
             grip_height=plate.lid_grip_height,
-            labware_height=plate.lid_height
+            labware_height=plate.lid_height,
         )
         self.place_labware(
             location_name=target,
@@ -775,8 +792,9 @@ class SCICLOPS:
         )
         self.move_loc("neutral")
 
-
-    def remove_and_replace_lid(self, source: str, plate: Union[Labware, dict], target: str):
+    def remove_and_replace_lid(
+        self, source: str, plate: Union[Labware, dict], target: str
+    ):
         """
         Removes a lid from a plate and places it on a different plate
         """
@@ -786,7 +804,7 @@ class SCICLOPS:
         self.pick_labware(
             location_name=source,
             grip_height=plate.lid_removal_grip_height,
-            labware_height=plate.height_with_lid
+            labware_height=plate.height_with_lid,
         )
         self.place_labware(
             location_name=target,
@@ -804,7 +822,7 @@ class SCICLOPS:
         self.pick_labware(
             location_name=source,
             grip_height=plate.lid_grip_height,
-            labware_height=plate.lid_height
+            labware_height=plate.lid_height,
         )
         self.move_above_loc(source)
 

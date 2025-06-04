@@ -47,6 +47,7 @@ class PlateResource(BaseModel):
         steps = int(plate_measurement_in_mm * steps_per_mm)
         return steps
 
+
 class Labware(BaseModel):
     """
     A labware resource that can be manipulated by the SCICLOPS
@@ -69,12 +70,13 @@ class Labware(BaseModel):
     lid_grip_height: float
     """The height at which the gripper should grip the lid in mm"""
 
+
 Falcon_96_well = Labware(
     name="Falcon 96-well microplate",
-    height = 16.5,
-    grip_height = 3.0,
-    height_with_lid = 18.5,
-    lid_removal_grip_height = 12.0,
-    lid_height = 11.5,
-    lid_grip_height = 5.0,
+    height=16.5,
+    grip_height=3.0,
+    height_with_lid=18.5,
+    lid_removal_grip_height=12.0,
+    lid_height=11.5,
+    lid_grip_height=5.0,
 )

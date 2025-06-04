@@ -5,11 +5,12 @@ from pathlib import Path
 from typing import List, Union
 
 from fastapi.datastructures import State
-from platecrane_driver.platecrane_driver import PlateCrane
 from typing_extensions import Annotated
 from wei.modules.rest_module import RESTModule
 from wei.types.step_types import StepResponse, StepSucceeded
 from wei.utils import extract_version
+
+from platecrane_driver.platecrane_driver import PlateCrane
 
 rest_module = RESTModule(
     name="platecrane_node",
