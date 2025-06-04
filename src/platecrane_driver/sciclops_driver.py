@@ -1,11 +1,14 @@
 """Driver for the Hudson Robotics Sciclops robot."""
 
-import asyncio
 import re
+import time
+from typing import Optional, Union
 
 import usb.core
 import usb.util
 
+from platecrane_driver.resource_types import Labware
+# from resource_types import Labware
 
 class SCICLOPS:
     """
@@ -33,12 +36,15 @@ class SCICLOPS:
         # self.HOMEMSG = ""
         # self.OPENMSG = ""
         # self.CLOSEMSG = ""
-        self.labware = self.load_labware()
-        self.plate_info = self.load_plate_info()
+        self.locations = self.load_locations()
         self.success_count = 0
         self.status = self.get_status()
         self.error = self.get_error()
         self.movement_state = "READY"
+
+    def __del__(self):
+        """Destructor for the SCICLOPS driver. Disconnects from the Sciclops robot."""
+        self.disconnect_robot()
 
     def connect_sciclops(self):
         """
@@ -62,115 +68,70 @@ class SCICLOPS:
         else:
             print("Robot is disconnected")
 
-    def load_plate_info(self):
-        """
-        hard-codes size information for any possible plates
-        """
-        plates = {
-            "96_well": {
-                "height": 16.2562,
-                "grab_exchange": -30,  # downward motion from Z = -356.5375
-                "grab_lid_exchange": -21,  # downward motion from Z = -356.5375
-                "grab_tower": -18,  # downward motion from 10 above top of plate
-                "grab_lid_tower": -13,
-                "grab_lid_nest": -12,
-            },
-            "pcr_plate": {
-                "height": 15.2762,
-                "grab_exchange": -28,  # from Z = -356.5375
-                "grab_lid_exchange": 0,  # downward motion from Z = -356.5375, no lid
-                "grab_tower": -17,  # downward motion from 10 above top of plate
-                "grab_lid_tower": 0,  # no lid
-                "grab_lid_nest": 0,  # no lid
-            },
-        }
-
-        return plates
-
-    def load_labware(self, labware_file=None):
+    def load_locations(self):
         """
         Loads plate information which affects get_plate function.
         """
-        if labware_file:
-            pass  # will load file in the future
 
         # Dictionary for plate information
-        labware = {
-            "tower1": {
-                "pos": {"Z": 23.5188, "R": 133.5, "Y": 171.9895, "P": 8.6648},
-                "type": "pcr_plate",
-                "howmany": 1,
-                "grab_height": 8,
-                "cap_height": 20,
-                "size": [10, 11, 12],
-                "has_lid": True,
+        locations = {
+            "stack1": {
+                # Z:-397.1688, R:134.9400, Y:172.5228, P:9.7159
+                # "pos": {"Z":-397.6188, "R":133.5247, "Y":172.5228, "P":9.7159},
+                "pos": {"Z":-397.1688, "R":134.7400, "Y":172.5228, "P":9.7159},
+                "type": "stack",
             },
-            "tower2": {
-                "pos": {"Z": 23.5188, "R": 151.3, "Y": 171.4872, "P": 8.4943},
-                "type": "96_well",
-                "howmany": 0,
-                "grab_height": 8,
-                "cap_height": 20,
-                "size": [10, 11, 12],
-                "has_lid": True,
+            "stack2": {
+                # "pos": {"Z":-395.2313, "R":151.3112, "Y":173.0375, "P":11.392},
+                "pos": {"Z":-397.2875, "R":152.8218, "Y":172.5166, "P":9.7159},
+                "type": "stack",
             },
-            "tower3": {
-                "pos": {"Z": 23.5188, "R": 169.5, "Y": 171.4810, "P": 12.4716},
-                "type": "96_well",
-                "howmany": 0,
-                "grab_height": 8,
-                "cap_height": 20,
-                "size": [10, 11, 12],
-                "has_lid": True,
+            "stack3": {  # Z:-397.3563, R:170.8571, Y:172.5166, P:9.7159
+                # "pos": {"Z":-397.5500, "R":169.4188, "Y":171.8531, "P":10.2557},
+                "pos": {"Z":-397.3563, "R":170.8571, "Y":172.5166, "P":9.7159},
+                "type": "stack",
             },
-            "tower4": {
-                "pos": {"Z": 23.5188, "R": 187.5, "Y": 169.4470, "P": 5.9091},
-                "type": "96_well",
-                "howmany": 0,
-                "grab_height": 8,
-                "cap_height": 20,
-                "size": [10, 11, 12],
-                "has_lid": True,
+            "stack4": {   # Z:-396.1000, R:188.8588, Y:172.5166, P:9.7159
+                # "pos": {"Z":-397.4563, "R":187.3500, "Y":171.2330, "P":10.2557},
+                "pos": {"Z":-396.1000, "R":188.6588, "Y":172.5166, "P":9.7159},
+                "type": "stack",
             },
-            "tower5": {
-                "pos": {"Z": 23.5188, "R": 205.4, "Y": 171.2082, "P": 10.8807},
-                "type": "96_well",
-                "howmany": 0,
-                "grab_height": 8,
-                "cap_height": 20,
-                "size": [10, 11, 12],
-                "has_lid": True,
+            "stack5": {  # Z:-394.4875, R:206.8553, Y:172.5166, P:9.7159
+                # "pos": {"Z":-397.8000, "R":205.3147, "Y":171.2330, "P":10.2557},
+                "pos": {"Z":-394.4875, "R":206.6553, "Y":172.5166, "P":9.7159},
+                "type": "stack",
             },
             "lidnest1": {
-                "pos": {"Z": 23.5188, "R": 169.2706, "Y": 25.7535, "P": 10.2159},
-                "type": "96_well",
-                "howmany": 0,  # can only hold one
-                "size": [10, 11, 12],
-                "grab_height": 15,  # Z of -372.4625 ( 10 above lid)
+                # Z:-385.0500, R:170.6876, Y:27.2231, P:10.2841
+                # "pos": {"Z":-388.4625, "R":169.4965, "Y":25.6853, "P":10.2557}
+                # "pos": {"Z":-388.8563, "R":170.8412, "Y":25.6977, "P":10.2841},
+                "pos": {"Z":-388.8563, "R":170.6876, "Y":27.2231, "P":10.2841},
+                "type": "nest"
             },
-            "lidnest2": {
-                "pos": {"Z": 23.5188, "R": 201.2665, "Y": 25.7535, "P": 8.0909},
-                "type": "96_well",
-                "howmany": 0,  # can only hold one
-                "size": [10, 11, 12],
-                "grab_height": 15,
+            "lidnest2": {  # Z:-384.9375, R:202.8318, Y:26.8139, P:10.2841
+                # "pos": {"Z":-388.4625, "R":201.6388, "Y":25.6853, "P":10.2557},
+                # "pos": {"Z":-388.4625, "R":203.1618, "Y":26.1503, "P":10.2557},
+                "pos": {"Z":-388.4625, "R":202.8318, "Y":26.8139, "P":10.2841},
+                "type": "nest"
             },
-            "exchange": {
-                "pos": {"Z": 23.5188, "R": 109.2741, "Y": 32.7484, "P": 100.8955},
-                "type": "96_well",
-                "howmany": 0,
-                "size": [10, 11, 2],
-                "grab_height": 0,
-                "cap_height": 15,
-                "has_lid": False,
+            # "exchange": {
+            #     # "pos": {"Z": -417.2938, "R": 305.5588, "Y": 143.8300, "P": 198.2102 - 181},
+            #     "pos": {"Z": -418.2938, "R": 305.75, "Y": 142.8300, "P": 198.2102 - 181.5},
+            #     "type": "nest"
+            # }, # "Z":-414.8438, "R":288.9053, "Y":192.5526, "P":22.7841
+            "exchange": {  # new Z:-415.5188, R:288.8029, Y:193.2781, P:22.7841
+                # "pos": {"Z": -417.2938, "R": 305.5588, "Y": 143.8300, "P": 198.2102 - 181},
+                # "pos": {"Z":-415.8438, "R":288.9053, "Y":192.5526, "P":22.7841},
+                "pos": {"Z":-415.8438, "R":288.8029, "Y":193.2781, "P":22.7841},
+                "type": "nest"
             },
             "neutral": {
-                "pos": {"Z": 23.5188, "R": 109.2741, "Y": 32.7484, "P": 98.2955}
+                "pos": {"Z": 23.5188, "R": 109.2741, "Y": 32.7484, "P": 98.2955},
+                "type": "point"
             },
-            "trash": {"pos": {"Z": 23.5188, "R": 259.2688, "Y": 62.7497, "P": 98.2670}},
         }
 
-        return labware
+        return locations
 
     def send_command(self, command):
         """
@@ -186,12 +147,12 @@ class SCICLOPS:
         while msg != command:
             # or "success" not in msg or "error" in msg
             try:
-                response = self.host_path.read(0x83, 200, timeout=5000)
+                response = self.host_path.read(0x83, 200, timeout=1000)
             except Exception:
                 break
             msg = "".join(chr(i) for i in response)
             response_buffer = response_buffer + "Read: " + msg
-
+        # if not command.startswith("STATUS"):
         print(response_buffer)
 
         self.success_count = self.success_count + response_buffer.count("0000 Success")
@@ -235,6 +196,7 @@ class SCICLOPS:
 
         command = "GETPOS\r\n"  # Command interpreted by Sciclops
         out_msg = self.send_command(command)
+        print(out_msg)
 
         try:
             # Checks if specified format is found in feedback
@@ -248,8 +210,10 @@ class SCICLOPS:
             ]
 
             print(self.current_pos)
+            return self.current_pos
         except Exception:
-            pass
+            import traceback
+            traceback.print_exc()
 
     def get_status(self):
         """
@@ -270,11 +234,10 @@ class SCICLOPS:
         except Exception:
             pass
 
-    async def check_complete(self):
+    def check_complete(self):
         """
         Checks to see if current sciclops action has completed
         """
-        print("Checking if complete")
         command = "STATUS\r\n"  # Command interpreted by Sciclops
         out_msg = self.send_command(command)
 
@@ -292,15 +255,15 @@ class SCICLOPS:
 
             return False
         finally:
-            await asyncio.sleep(0.1)
+            time.sleep(0.1)
 
-    async def check_complete_loop(self):
+    def check_complete_loop(self):
         """
         continuously runs check_complete until it returns True
         """
         a = False
         while not a:
-            a = await self.check_complete()
+            a = self.check_complete()
 
         print("ACTION COMPLETE")
 
@@ -446,12 +409,7 @@ class SCICLOPS:
             pass
 
         # Moves axes to neutral position (above exchange)
-        self.move(
-            R=self.labware["neutral"]["pos"]["R"],
-            Z=23.5188,
-            P=self.labware["neutral"]["pos"]["P"],
-            Y=self.labware["neutral"]["pos"]["Y"],
-        )
+        self.move_loc("neutral")
 
     def open(self):
         """
@@ -655,6 +613,8 @@ class SCICLOPS:
         except Exception:
             pass
 
+        # self.check_complete_loop()
+
         self.deletepoint(R, Z, P, Y)
 
     def move_loc(self, loc):
@@ -664,603 +624,227 @@ class SCICLOPS:
 
         # check if loc exists (later)
         self.move(
-            self.labware[loc]["pos"]["R"],
-            self.labware[loc]["pos"]["Z"],
-            self.labware[loc]["pos"]["P"],
-            self.labware[loc]["pos"]["Y"],
+            self.locations[loc]["pos"]["R"],
+            self.locations[loc]["pos"]["Z"],
+            self.locations[loc]["pos"]["P"],
+            self.locations[loc]["pos"]["Y"],
         )
 
-    def get_plate(self, location, remove_lid=False, trash=False):
+    def move_loc_at_height(self, location, height):
         """
-        Grabs plate and places on exchange. Paramater is the stack that the Sciclops is requested to remove the plate from.
-        Format: "Stack<num>"
-        remove lid and trash bools tell whether to remove lid from plate and whether to throw said lid in the trash or place in nest
+        Move to preset locations located in load_labware function
         """
 
-        # check to see if plate already on the exchange
-        # removed for now until labware can be  edited in a file
-        # if self.labware['exchange']['howmany'] != 0:
-        #     print("PLATE ALREADY ON THE EXCHANGE")
-        # else:
-        tower_info = self.labware[location]
-        plate_type = tower_info["type"]
+        # check if loc exists (later)
+        self.move(
+            self.locations[location]["pos"]["R"],
+            height,
+            self.locations[location]["pos"]["P"],
+            self.locations[location]["pos"]["Y"],
+        )
 
-        # Move arm up and to neutral position to avoid hitting any objects
+    def move_above_loc(self, loc):
+        """
+        Move to preset locations located in load_labware function
+        """
+
+        # check if loc exists (later)
+        self.move(
+            self.locations[loc]["pos"]["R"],
+            self.locations["neutral"]["pos"]["Z"],
+            self.locations[loc]["pos"]["P"],
+            self.locations[loc]["pos"]["Y"],
+        )
+
+    def pick_labware(self, location_name: str, grip_height: float, labware_height: float, gentle_lift: bool = False):
+        """
+        Grabs labware from the provided location
+        """
+
+        location = self.locations[location_name]
+
         self.open()
-        self.set_speed(10)  #
+        self.set_speed(100)
+        self.jog("Z", 1000)
         self.jog("Y", -1000)
-        self.jog("Z", 1000)
-        self.set_speed(12)
-        self.move(
-            R=self.labware["neutral"]["pos"]["R"],
-            Z=23.5188,
-            P=self.labware["neutral"]["pos"]["P"],
-            Y=self.labware["neutral"]["pos"]["Y"],
-        )
-
-        # check coordinates
-        asyncio.run(self.check_complete_loop())
-
-        # Move above desired tower
-        self.set_speed(100)
-        self.move(
-            R=tower_info["pos"]["R"],
-            Z=23.5188,
-            P=tower_info["pos"]["P"],
-            Y=tower_info["pos"]["Y"],
-        )
-        # check coordinates
-        asyncio.run(self.check_complete_loop())
-
-        # Remove plate from tower
+        # self.move_loc("neutral")
+        self.move_above_loc(location_name)
+        if location.get("type") == "stack":
+            self.set_speed(10)
+            self.close()
+            self.jog("Z", -1000)
+            self.jog("Z", 10)
+            self.open()
+            self.jog("Z", -2.5 - labware_height + grip_height)
+        elif location.get("type") == "nest":
+            self.move_loc_at_height(location_name, location["pos"]["Z"] + grip_height + 10)
+            self.set_speed(10)
+            self.move_loc_at_height(location_name, location["pos"]["Z"] + grip_height)
         self.close()
-        self.set_speed(15)
-        self.jog("Z", -1000)
-        # move up certain amount
-        self.jog("Z", 10)
-        self.open()
-        grab_height = self.plate_info[plate_type]["grab_tower"]
-        self.jog("Z", grab_height)
-        self.close()
-        self.set_speed(100)
-        self.jog("Z", 1000)
-        # check coordinates
-        # asyncio.run(self.check_complete_loop())
+        if gentle_lift:
+            self.set_speed(1)
+            self.jog("Z", 10)
+            self.jog("Z", -5)
+            self.jog("Z", 10)
+            self.jog("Z", -5)
+            self.jog("Z", 10)
+            self.jog("Z", -5)
+            self.jog("Z", 10)
+        self.set_speed(20)
+        self.move_above_loc(location_name)
 
-        # Place in exchange
-        self.move(
-            R=self.labware["exchange"]["pos"]["R"],
-            Z=23.5188,
-            P=self.labware["exchange"]["pos"]["P"],
-            Y=self.labware["exchange"]["pos"]["Y"],
+    def place_labware(self, location_name: str, grip_height: float):
+        """
+        Places labware in the provided location
+        """
+
+        location = self.locations[location_name]
+
+        self.set_speed(20)
+        self.move_above_loc(location_name)
+        if location.get("type") == "stack":
+            self.set_speed(10)
+            self.jog("Z", -1000)
+            self.jog("Z", 5)
+            self.open()
+            self.set_speed(100)
+            self.jog("Z", 1000)
+        elif location.get("type") == "nest":
+            self.move_loc_at_height(location_name, location["pos"]["Z"] + grip_height + 10)
+            self.set_speed(1)
+            self.move_loc_at_height(location_name, location["pos"]["Z"] + grip_height)
+            self.open()
+            self.set_speed(100)
+            self.jog("Z", 1000)
+        self.move_above_loc(location_name)
+
+
+
+    def transfer_labware(self, source: str, plate: Union[Labware, dict], target: str, has_lid: bool = True):
+        """
+        Moves labware from a source location to a target location
+        """
+        if isinstance(plate, dict):
+            plate = Labware.model_validate(plate)
+
+        self.pick_labware(
+            location_name=source,
+            grip_height=plate.grip_height,
+            labware_height=plate.height_with_lid if has_lid else plate.height
         )
-        # check coordinates
-        # asyncio.run(self.check_complete_loop())
-        self.jog("Z", -380)
-        self.set_speed(5)
-        self.jog("Z", -30)
-        self.open()
-        self.set_speed(100)
-        self.jog("Z", 1000)
-        # check coordinates
-        # asyncio.run(self.check_complete_loop())
-        self.labware["exchange"]["howmany"] += 1
-        self.labware["exchange"]["type"] = self.labware[location]["type"]
-        self.labware["exchange"]["size"] = self.labware[location]["size"]
-        self.labware["exchange"]["has_lid"] = self.labware[location]["has_lid"]
-
-        # check if lid needs to be removed
-        if remove_lid:
-            self.remove_lid(trash=trash)
-        else:
-            self.labware["exchange"]["has_lid"] = True
-
-        # Move back to neutral
-        self.move(
-            R=self.labware["neutral"]["pos"]["R"],
-            Z=23.5188,
-            P=self.labware["neutral"]["pos"]["P"],
-            Y=self.labware["neutral"]["pos"]["Y"],
+        self.place_labware(
+            location_name=target,
+            grip_height=plate.grip_height,
         )
-        # check coordinates
-        # asyncio.run(self.check_complete_loop())
+        self.move_loc("neutral")
 
-        # update labware
-        self.labware[location]["howmany"] -= 1
+    def remove_lid(self, source: str, plate: Union[Labware, dict], target: str):
+        """
+        Removes lid from a plate
+        """
+        if isinstance(plate, dict):
+            plate = Labware.model_validate(plate)
+
+        self.pick_labware(
+            location_name=source,
+            grip_height=plate.lid_removal_grip_height,
+            labware_height=plate.height_with_lid,
+            gentle_lift=True,
+        )
+        self.place_labware(
+            location_name=target,
+            grip_height=plate.lid_grip_height,
+        )
+        self.move_loc("neutral")
+
+    def replace_lid(self, source: str, plate: Union[Labware, dict], target: str):
+        """
+        Places lid on a plate
+        """
+        if isinstance(plate, dict):
+            plate = Labware.model_validate(plate)
+
+        self.pick_labware(
+            location_name=source,
+            grip_height=plate.lid_grip_height,
+            labware_height=plate.lid_height
+        )
+        self.place_labware(
+            location_name=target,
+            grip_height=plate.lid_removal_grip_height,
+        )
+        self.move_loc("neutral")
+
+
+    def remove_and_replace_lid(self, source: str, plate: Union[Labware, dict], target: str):
+        """
+        Removes a lid from a plate and places it on a different plate
+        """
+        if isinstance(plate, dict):
+            plate = Labware.model_validate(plate)
+
+        self.pick_labware(
+            location_name=source,
+            grip_height=plate.lid_removal_grip_height,
+            labware_height=plate.height_with_lid
+        )
+        self.place_labware(
+            location_name=target,
+            grip_height=plate.lid_removal_grip_height,
+        )
+        self.move_loc("neutral")
+
+    def pick_lid(self, source: str, plate: Union[Labware, dict]):
+        """
+        Picks up lid from nest/stack
+        """
+        if isinstance(plate, dict):
+            plate = Labware.model_validate(plate)
+
+        self.pick_labware(
+            location_name=source,
+            grip_height=plate.lid_grip_height,
+            labware_height=plate.lid_height
+        )
+        self.move_above_loc(source)
+
+    def place_lid(self, plate: Union[Labware, dict], target: str):
+        """
+        Places lid in a nest/stack
+        """
+        if isinstance(plate, dict):
+            plate = Labware.model_validate(plate)
+
+        self.place_labware(
+            location_name=target,
+            grip_height=plate.lid_grip_height,
+        )
+        self.move_above_loc(target)
+
+    def transfer_lid(self, source: str, plate: Union[Labware, dict], target: str):
+        """
+        Moves a lid from source to target
+        """
+        if isinstance(plate, dict):
+            plate = Labware.model_validate(plate)
+
+        self.pick_lid(
+            source=source,
+            plate=plate,
+        )
+        self.place_lid(
+            target=target,
+            plate=plate,
+        )
+        self.move_loc("neutral")
 
     def limp(self, limp_bool):
         """
         Turns on/off limp mode (allows someone to manually move joints)
         """
         if limp_bool:
-            limp_string = "FALSE"
+            limp_string = "FALSE\r\n"
         else:
-            limp_string = "TRUE"
+            limp_string = "TRUE\r\n"
         command = "LIMP %s" % limp_string  # Command interpreted by Sciclops
         self.send_command(command)
-
-    def check_for_lid(
-        self,
-    ):  # TODO: conditional for no available lid to prevent delays?
-        """Checks all lid nests to see if there's a lid of same type present, returns occupied lid nest"""
-        if (
-            self.labware["lidnest1"]["howmany"] >= 1
-            and self.labware["lidnest1"]["type"] == self.labware["exchange"]["type"]
-        ):
-            return "lidnest1"
-        elif (
-            self.labware["lidnest2"]["howmany"] >= 1
-            and self.labware["lidnest2"]["type"] == self.labware["exchange"]["type"]
-        ):
-            return "lidnest2"
-        else:
-            print("NO MATCHING LID IN LID NESTS")
-        pass
-
-    # * check all lid nests to see if there's an empty "available" lid nst, returns open lid nest
-    def check_for_empty_nest(
-        self,
-    ):  # TODO: maybe add conditional to throw away lids in nests if none available?
-        """Check all lid nests to see if there's an empty "available" lid nest, returns open lid nest"""
-        if self.labware["lidnest1"]["howmany"] == 0:
-            return "lidnest1"
-        elif self.labware["lidnest2"]["howmany"] == 0:
-            return "lidnest2"
-        else:
-            print("NO AVAILABLE LID NESTS")
-        pass
-
-    def check_stack(self, tower):
-        """Check a stack to see if there's room for another plate, returns True if there is room, False if not."""
-        # save z height of stack Z = -36
-        tower_z_height = -50
-        tower_z_bottom = -421.8625
-        # get type of plate in desired tower
-        plate_type = self.labware[tower]["type"]
-        # get height of plate type
-        plate_height = self.plate_info[plate_type]["height"]
-        # number of plates in stack
-        num_stack = self.labware[tower]["howmany"]
-        total_height = plate_height * num_stack
-        remaining = total_height + tower_z_bottom
-        if remaining < tower_z_height:  # room for another plate
-            return True
-        else:  # stack full
-            return False
-
-    def remove_lid(self, trash):
-        """Remove lid, (self, lidnest, plate_type), removes lid from plate in exchange, trash bool will throw lid into trash"""
-        #  move above plate exchange
-        self.set_speed(100)
-        self.open()
-        self.move(
-            R=self.labware["exchange"]["pos"]["R"],
-            Z=23.5188,
-            P=self.labware["exchange"]["pos"]["P"],
-            Y=self.labware["exchange"]["pos"]["Y"],
-        )
-        # check coordinates
-        asyncio.run(self.check_complete_loop())
-        plate_type = self.labware["exchange"]["type"]
-
-        # check to make sure plate has lid
-        if not self.labware["exchange"]["has_lid"]:
-            print("NO LID ON PLATE IN EXCHANGE")
-        else:
-            # remove lid
-            self.jog("Z", -380)
-            self.set_speed(7)
-            lid_height = self.plate_info[plate_type]["grab_lid_exchange"]
-            self.jog("Z", lid_height)
-            self.close()
-
-            self.set_speed(100)
-            self.jog("Z", 1000)
-            # check coordinates
-            asyncio.run(self.check_complete_loop())
-
-            if trash:
-                # move above trash
-                self.move(
-                    R=self.labware["trash"]["pos"]["R"],
-                    Z=23.5188,
-                    P=self.labware["trash"]["pos"]["P"],
-                    Y=self.labware["trash"]["pos"]["Y"],
-                )
-                asyncio.run(self.check_complete_loop())
-
-                # drop in trash
-                self.jog("Z", -400)
-                self.open()
-                self.jog("Z", 1000)
-
-                # return to home
-                self.move(
-                    R=self.labware["neutral"]["pos"]["R"],
-                    Z=23.5188,
-                    P=self.labware["neutral"]["pos"]["P"],
-                    Y=self.labware["neutral"]["pos"]["Y"],
-                )
-                # check coordinates
-                asyncio.run(self.check_complete_loop())
-
-                # update labware
-                self.labware["exchange"]["has_lid"] = False
-            else:
-                # find empty plate nest
-                lid_nest = self.check_for_empty_nest()
-
-                # move above desired lid nest
-                self.move(
-                    R=self.labware[lid_nest]["pos"]["R"],
-                    Z=23.5188,
-                    P=self.labware[lid_nest]["pos"]["P"],
-                    Y=self.labware[lid_nest]["pos"]["Y"],
-                )
-                # check coordinates
-                asyncio.run(self.check_complete_loop())
-
-                # place in lid nest
-                self.jog("Z", -400)
-                self.open()
-                self.jog("Z", 1000)
-                # check coordinates
-                asyncio.run(self.check_complete_loop())
-
-                # return to home
-                self.move(
-                    R=self.labware["neutral"]["pos"]["R"],
-                    Z=23.5188,
-                    P=self.labware["neutral"]["pos"]["P"],
-                    Y=self.labware["neutral"]["pos"]["Y"],
-                )
-                # check coordinates
-                asyncio.run(self.check_complete_loop())
-
-                # update labware dict
-                self.labware[lid_nest]["howmany"] += 1
-                self.labware[lid_nest]["type"] = self.labware["exchange"]["type"]
-                self.labware["exchange"]["has_lid"] = False
-
-    def replace_lid(self):
-        """Plate on exchange, replace lid (self, plateinfo, lidnest)"""
-        # find a lid
-        self.set_speed(100)
-        self.open()
-        lid_nest = self.check_for_lid()
-        plate_type = self.labware["exchange"]["type"]
-
-        # make sure current plate doesn't already have lid
-        if self.labware["exchange"]["has_lid"]:
-            print("PLATE IN EXCHANGE ALREADY HAS LID")
-        else:
-            # move above desired lidnest
-            self.move(
-                R=self.labware[lid_nest]["pos"]["R"],
-                Z=23.5188,
-                P=self.labware[lid_nest]["pos"]["P"],
-                Y=self.labware[lid_nest]["pos"]["Y"],
-            )
-            # check coordinates
-            asyncio.run(self.check_complete_loop())
-
-            # grab lid
-            self.close()
-            self.jog("Z", -380)
-            self.set_speed(7)
-            self.jog("Z", -1000)
-            self.jog("Z", 10)
-            self.open()
-            lid_height = self.plate_info[plate_type]["grab_lid_nest"]
-            self.jog("Z", lid_height)
-            self.close()
-            self.set_speed(100)
-            self.jog("Z", 1000)
-            asyncio.run(self.check_complete_loop())
-
-            # move above exchange
-            self.move(
-                R=self.labware["exchange"]["pos"]["R"],
-                Z=23.5188,
-                P=self.labware["exchange"]["pos"]["P"],
-                Y=self.labware["exchange"]["pos"]["Y"],
-            )
-            # check coordinates
-            asyncio.run(self.check_complete_loop())
-
-            # place lid onto plate
-            self.jog("Z", -400)
-            self.open()
-            self.jog("Z", 1000)
-            asyncio.run(self.check_complete_loop())
-
-            # return to home
-            self.move(
-                R=self.labware["neutral"]["pos"]["R"],
-                Z=23.5188,
-                P=self.labware["neutral"]["pos"]["P"],
-                Y=self.labware["neutral"]["pos"]["Y"],
-            )
-            # check coordinates
-            asyncio.run(self.check_complete_loop())
-
-            # update labware dict
-            self.labware[lid_nest]["howmany"] -= 1
-            self.labware["exchange"]["has_lid"] = True
-
-    def plate_to_stack(self, tower, add_lid):
-        """Plate from exchange to stack (self, tower, plateinfo)"""
-        # Move arm up and to neutral position to avoid hitting any objects
-        self.open()
-        self.set_speed(10)
-        self.jog("Y", -1000)
-        self.jog("Z", 1000)
-        self.set_speed(12)
-        self.move(
-            R=self.labware["neutral"]["pos"]["R"],
-            Z=23.5188,
-            P=self.labware["neutral"]["pos"]["P"],
-            Y=self.labware["neutral"]["pos"]["Y"],
-        )
-        asyncio.run(self.check_complete_loop())
-        plate_type = self.labware["exchange"]["type"]
-        if add_lid:
-            self.check_for_lid()
-            self.replace_lid()
-
-        # TODO: check to see if given stack is full, use function to account for different labware, maybe checks all stacks to find one with same labware?
-
-        # move over exchange
-        self.open()
-        self.move(
-            R=self.labware["exchange"]["pos"]["R"],
-            Z=23.5188,
-            P=self.labware["exchange"]["pos"]["P"],
-            Y=self.labware["exchange"]["pos"]["Y"],
-        )
-        # check coordinates
-        asyncio.run(self.check_complete_loop())
-        # grab plate
-        self.set_speed(100)
-        self.jog("Z", -380)
-        grab_height = self.plate_info[plate_type]["grab_exchange"]
-        self.jog("Z", grab_height)
-        self.close()
-        self.set_speed(100)
-        self.jog("Z", 1000)
-        asyncio.run(self.check_complete_loop())
-
-        # move above tower, place plate in tower
-        self.move(
-            R=self.labware[tower]["pos"]["R"],
-            Z=23.5188,
-            P=self.labware[tower]["pos"]["P"],
-            Y=self.labware[tower]["pos"]["Y"],
-        )
-        # check coordinates
-        asyncio.run(self.check_complete_loop())
-        self.set_speed(10)
-        self.jog("Z", -1000)
-        self.open()
-        self.set_speed(100)
-        self.jog("Z", 1000)
-        # check coordinates
-        asyncio.run(self.check_complete_loop())
-
-        # move to home
-        self.move(
-            R=self.labware["neutral"]["pos"]["R"],
-            Z=23.5188,
-            P=self.labware["neutral"]["pos"]["P"],
-            Y=self.labware["neutral"]["pos"]["Y"],
-        )
-        # check coordinates
-        asyncio.run(self.check_complete_loop())
-
-        # update labware dict
-        self.labware["exchange"]["howmany"] -= 1
-        self.labware[tower]["howmany"] += 1
-
-    def lidnest_to_trash(self, lidnest):
-        """Remove lid from lidnest, throw away"""
-        # Move arm up and to neutral position to avoid hitting any objects
-        self.open()
-        self.set_speed(10)
-        self.jog("Y", -1000)
-        self.jog("Z", 1000)
-        self.set_speed(12)
-        self.move(
-            R=self.labware["neutral"]["pos"]["R"],
-            Z=23.5188,
-            P=self.labware["neutral"]["pos"]["P"],
-            Y=self.labware["neutral"]["pos"]["Y"],
-        )
-        asyncio.run(self.check_complete_loop())
-        # check to make sure lid present
-        if self.labware[lidnest]["howmany"] >= 1:  # lid in nest
-            lid_type = self.labware[lidnest]["type"]
-            # move above lidnest
-            self.set_speed(100)
-            self.close()
-            self.move(
-                R=self.labware[lidnest]["pos"]["R"],
-                Z=23.5188,
-                P=self.labware[lidnest]["pos"]["P"],
-                Y=self.labware[lidnest]["pos"]["Y"],
-            )
-            asyncio.run(self.check_complete_loop())
-
-            # grab lid
-            self.jog("Z", -380)
-            self.set_speed(7)
-            self.jog("Z", -1000)
-            self.jog("Z", 10)
-            self.open()
-            lid_height = self.plate_info[lid_type]["grab_lid_nest"]
-            self.jog("Z", lid_height)
-            self.close()
-            self.set_speed(100)
-            self.jog("Z", 1000)
-            asyncio.run(self.check_complete_loop())
-
-            # move above trash
-            self.move(
-                R=self.labware["trash"]["pos"]["R"],
-                Z=23.5188,
-                P=self.labware["trash"]["pos"]["P"],
-                Y=self.labware["trash"]["pos"]["Y"],
-            )
-            asyncio.run(self.check_complete_loop())
-
-            # drop lid
-            self.jog("Z", -1000)
-            self.open()
-            self.jog("Z", 1000)
-            asyncio.run(self.check_complete_loop())
-
-            # back to neutral
-            self.move(
-                R=self.labware["neutral"]["pos"]["R"],
-                Z=23.5188,
-                P=self.labware["neutral"]["pos"]["P"],
-                Y=self.labware["neutral"]["pos"]["Y"],
-            )
-            asyncio.run(self.check_complete_loop())
-
-            # update labware
-            self.labware[lidnest]["howmany"] -= 1
-
-        else:
-            print("NO LID IN NEST")
-
-    def plate_to_trash(self, add_lid):
-        """Remove plate from exchange, throw away"""
-        # Move arm up and to neutral position to avoid hitting any objects
-        self.open()
-        self.set_speed(10)
-        self.jog("Y", -1000)
-        self.jog("Z", 1000)
-        self.set_speed(12)
-        self.move(
-            R=self.labware["neutral"]["pos"]["R"],
-            Z=23.5188,
-            P=self.labware["neutral"]["pos"]["P"],
-            Y=self.labware["neutral"]["pos"]["Y"],
-        )
-        asyncio.run(self.check_complete_loop())
-        # check if plate is present
-        if self.labware["exchange"]["howmany"] >= 1:
-            # check if add_lid is true, if yes, add lid
-            if add_lid:
-                self.replace_lid()
-
-            plate_type = self.labware["exchange"]["type"]
-
-            # move over exchange
-            self.set_speed(100)
-            self.open()
-            self.move(
-                R=self.labware["exchange"]["pos"]["R"],
-                Z=23.5188,
-                P=self.labware["exchange"]["pos"]["P"],
-                Y=self.labware["exchange"]["pos"]["Y"],
-            )
-            asyncio.run(self.check_complete_loop())
-
-            # grab plate
-            self.jog("Z", -380)
-            self.set_speed(7)
-            grab_height = self.plate_info[plate_type]["grab_plate_exchange"]
-            self.jog("Z", grab_height)
-            self.close()
-            self.set_speed(100)
-            self.jog("Z", 1000)
-            asyncio.run(self.check_complete_loop())
-
-            # move over trash
-            self.move(
-                R=self.labware["trash"]["pos"]["R"],
-                Z=23.5188,
-                P=self.labware["trash"]["pos"]["P"],
-                Y=self.labware["trash"]["pos"]["Y"],
-            )
-            asyncio.run(self.check_complete_loop())
-
-            # drop plate
-            self.jog("Z", -1000)
-            self.open()
-            self.jog("Z", 1000)
-            asyncio.run(self.check_complete_loop())
-
-            # back to neutral
-            self.move(
-                R=self.labware["neutral"]["pos"]["R"],
-                Z=23.5188,
-                P=self.labware["neutral"]["pos"]["P"],
-                Y=self.labware["neutral"]["pos"]["Y"],
-            )
-            asyncio.run(self.check_complete_loop())
-
-            # update labware
-            self.labware["exchange"]["howmany"] -= 1
-
-        else:
-            print("NO PLATE IN EXCHANGE")
-
-
-if __name__ == "__main__":
-    """
-    Runs given function.
-    """
-    s = SCICLOPS()
-    # s.get_error()
-    # s.get_status()
-    # for i in range(1):
-    #     # s.jog("R", -1000)
-    #     # s.reset()
-    # #     sleep(5)
-    #     # s.home()
-    #     # s.send_command("")
-    # #     sleep(5)
-    #     s.get_plate("tower4")
-    # #     sleep(25)
-    # print("STATUS MSG: ", s.status)
-    # s.check_closed()
-    # print(s.CURRENT_POS)
-    s.reset()
-    # s.home()
-    # s.get_plate("tower1")
-    # dummy_sciclops.check_plate()
-
-# Finished commands
-# "GETPOS"
-# "STATUS"
-# "VERSION"
-# "GETCONFIG"
-# "GETGRIPPERLENGTH"
-# "GETCOLLAPSEDISTANCE"
-# "GETSTEPSPERUNIT"
-# "HOME"
-# "OPEN"
-# "CLOSE"
-# "GETGRIPPERISCLOSED"
-# "GETGRIPPERISOPEN"
-# "GETPLATEPRESENT"
-# "SETSPEED "
-# "MOVE "
-# "JOG"
-# "DELETEPOINT (ADD POINT)"
-# "LISTPOINTS"
-# "LOADPOINT R:0,Z:0,P:0,Y:0"
-# "LIMP TRUE/FALSE"
-
-# #Unfinished Commands
-# "GETLIMITS"
-
-# #Unknown Commands
-# "LISTMOTIONS"
-# "AUTOTEACH"
-# "GETPOINT"
-# "READINP 15"
-# "GETGRIPSTRENGTH"
-# "READINP"

@@ -22,5 +22,5 @@ RUN --mount=type=cache,target=/root/.cache \
 
 RUN usermod -aG dialout app
 
-CMD ["python", "-,", "sciclops_rest_node"]
+CMD ["python", "-m", "sciclops_rest_node"]
 #########################################
