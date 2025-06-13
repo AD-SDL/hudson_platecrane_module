@@ -75,8 +75,8 @@ class PlateCraneNode(RestNode):
     ) -> ActionResult:
         """Transfers a plate from one location to another."""
         self.platecrane.transfer(
-            source=source.location_name,
-            target=target.location_name,
+            source=source,
+            target=target,
             plate_type=plate_type,
             height_offset=height_offset,
             is_lid=is_lid,
@@ -98,8 +98,8 @@ class PlateCraneNode(RestNode):
     ) -> ActionResult:
         """Removes a lid from a plate."""
         self.platecrane.remove_lid(
-            source=source.location_name,
-            target=target.location_name,
+            source=source,
+            target=target,
             plate_type=plate_type,
             height_offset=height_offset,
         )
@@ -115,8 +115,8 @@ class PlateCraneNode(RestNode):
     ) -> ActionResult:
         """Removes a lid from a plate."""
         self.platecrane.replace_lid(
-            source=source.location_name,
-            target=target.location_name,
+            source=source,
+            target=target,
             plate_type=plate_type,
             height_offset=height_offset,
         )
