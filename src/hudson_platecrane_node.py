@@ -7,14 +7,11 @@ placing lids.
 
 from typing import Annotated, Optional
 
-from madsci.client.resource_client import ResourceClient
 from madsci.common.types.action_types import ActionResult, ActionSucceeded
-from madsci.common.types.auth_types import OwnershipInfo
 from madsci.common.types.location_types import LocationArgument
-from madsci.common.types.node_types import RestNodeConfig
+from madsci.common.types.node_types import NodeDefinition, RestNodeConfig
 from madsci.node_module.helpers import action
 from madsci.node_module.rest_node_module import RestNode
-from pydantic.fields import Field
 
 from platecrane_driver.platecrane_driver import PlateCrane
 
@@ -28,9 +25,6 @@ class PlateCraneConfig(RestNodeConfig):
     """The baud rate for the serial connection to the PlateCrane robot."""
     default_speed: int = 100
     """The default speed for the PlateCrane robot arm to move, as a percentage."""
-    travel_height: int = Field(
-        description="The travel height (Z value) for the PlateCrane robot arm to move to between transfers, in motor steps.",
-    )
 
 
 class PlateCraneNode(RestNode):
@@ -40,8 +34,10 @@ class PlateCraneNode(RestNode):
     """The PlateCrane driver instance."""
     config_model = PlateCraneConfig
     """The configuration model for the PlateCrane REST Node."""
-    config: PlateCraneConfig
-    """The configuration for the PlateCrane REST Node."""
+    config: PlateCraneConfig = PlateCraneConfig()
+    """The default configuration for the PlateCrane REST Node."""
+    module_version: str = "2.1.0"
+    """The version of the PlateCrane REST Node module."""
 
     def startup_handler(self) -> None:
         """Handles initializing the PlateCrane driver at node startup."""
@@ -49,12 +45,6 @@ class PlateCraneNode(RestNode):
             device_path=self.config.device, baud_rate=self.config.baud_rate
         )
         self.platecrane.initialize_platecrane()
-        if self.config.resource_server_url:
-            self.resource_client = ResourceClient(
-                resource_server_url=self.config.resource_server_url,
-                event_client=self.logger,
-                ownership_info=OwnershipInfo(node_id=self.node_definition.node_id),
-            )
 
     @action()
     def transfer(
@@ -137,3 +127,12 @@ class PlateCraneNode(RestNode):
             p=target.location["P"],
             y=target.location["Y"],
         )
+
+
+if __name__ == "__main__":
+    plate_crane_node = PlateCraneNode(
+        node_definition=NodeDefinition(
+            node_name="platecrane_node", module_name="hudson_platecrane_node"
+        )
+    )
+    plate_crane_node.start_node()

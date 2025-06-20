@@ -87,16 +87,17 @@ class SerialPort:
         Processes the message received from the serial port.
         This method can be overridden to handle specific messages.
         """
-        self.logger.log_debug(f"Processing message: {message.strip('\r\n')}")
-        self.response_buffer.append(message.strip("\r\n"))
+        stripped_message = message.strip("\r\n")
+        self.logger.log_debug(f"Processing message: {stripped_message}")
+        self.response_buffer.append(stripped_message)
         if self.last_command and message.startswith(self.last_command):
             self.logger.log_debug(
                 f"Command '{self.last_command}' acknowledged by device."
             )
             self.acknowledged = True
         else:
-            self.logger.log_debug(f"Recieved response: {message.strip('\r\n')}")
-            self.last_response = message.strip("\r\n")
+            self.logger.log_debug(f"Recieved response: {stripped_message}")
+            self.last_response = stripped_message
 
     def send_command(
         self,
@@ -117,9 +118,8 @@ class SerialPort:
         Returns:
         - str: The last response from the device.
         """
-        self.logger.log_info(
-            f"Sending command '{command.strip('\r\n')}' to {self.device}"
-        )
+        stripped_command = command.strip("\r\n")
+        self.logger.log_debug(f"Sending command '{stripped_command}' to {self.device}")
 
         if not self.connection or not self.connection.is_open:
             self.connect()
@@ -130,7 +130,7 @@ class SerialPort:
             self.acknowledged = False
             self.last_response = None
             self.response_buffer = []
-            self.last_command = command.strip("\r\n")
+            self.last_command = stripped_command
             self.connection.write(command.encode("utf-8"))
 
         while time.time() - self.last_command_time < timeout:

@@ -1,6 +1,6 @@
 [project]
 name = "hudson_platecrane_module"
-version = "2.0.0"
+version = "2.1.0"
 description = "MADSci Node Module and interface for the Hudson Platecrane Robotic Arm"
 authors = [
     {name = "Ryan D. Lewis", email="ryan.lewis@anl.gov"},
@@ -12,7 +12,7 @@ authors = [
 ]
 dependencies = [
     "pyserial",
-    "madsci.node_module>=0.3.0",
+    "madsci.node_module>=0.4.2",
 ]
 requires-python = ">=3.9.1"
 readme = "README.md"

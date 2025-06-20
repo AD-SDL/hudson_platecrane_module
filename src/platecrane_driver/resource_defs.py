@@ -79,14 +79,12 @@ locations = {
     ),
     "Hidex.Nest": PlateCraneLocation(  # After vibration table
         name="Hidex.Nest",
-        # joint_angles=[102688, -31390, -5923, 2400],
         joint_angles=[102406, -31090, -5901, 2373],
         location_type="nest",
         safe_approach_height=-27033,
     ),
     "Sealer.Nest": PlateCraneLocation(  # After vibration table
         name="Sealer.Nest",
-        # joint_angles=[119812, -1445, -4688, 4132],
         joint_angles=[118212, -998, -4758, 4071],
         location_type="nest",
         safe_approach_height=0,

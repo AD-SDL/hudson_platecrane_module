@@ -3,18 +3,19 @@ services:
   hudson_platecrane_module:
     container_name: hudson_platecrane_module
     image: ghcr.io/ad-sdl/hudson_platecrane_module
+    environment:
+      - USER_ID=${USER_ID:-1000}
+      - GROUP_ID=${GROUP_ID:-1000}
     build:
       context: .
       dockerfile: Dockerfile
       tags:
         - ghcr.io/ad-sdl/hudson_platecrane_module:latest
         - ghcr.io/ad-sdl/hudson_platecrane_module:dev
-    command: python -m sciclops_rest_node --port 2000 --device ${DEVICE}
+    command: python hudson_platecrane_module/src/hudson_platecrane_node.py --node_definition /home/madsci/definitions/hudson_platecrane.node.yaml --device /dev/ttyUSB2
     privileged: true
-    env_file: .env
     volumes:
       - /dev:/dev
-      - ./src:/home/madsci/hudson_platecrane_module/src
-      - ./tests:/home/madsci/hudson_platecrane_module/tests
+      - ./definitions:/home/madsci/definitions
     network_mode: host
     restart: unless-stopped

@@ -73,8 +73,6 @@ class PlateCrane:
     def initialize_platecrane(self) -> None:
         """Connect to the PlateCrane EX device."""
         self.update_status()
-        if self.status_code == 0:
-            self.home()
         self.update_position()
         self.initialized = True
 
