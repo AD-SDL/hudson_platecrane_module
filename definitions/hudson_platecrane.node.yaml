@@ -3,5 +3,5 @@ node_id: 01JY7SGSYKSQC0Y23RSEDDD1F7
 node_description: null
 node_type: device
 module_name: hudson_platecrane_node
-module_version: 0.0.1
+module_version: 2.1.0
 capabilities: null
