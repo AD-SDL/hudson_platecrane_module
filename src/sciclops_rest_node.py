@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 """The server for the Hudson Platecrane/Sciclops that takes incoming WEI flow requests from the experiment application"""
 
+import time
 from pathlib import Path
 from typing import Union
 
@@ -120,6 +121,8 @@ def remove_lid(
         plate=plate,
         target=target,
     )
+    time.sleep(5)
+
     return StepSucceeded()
 
 
