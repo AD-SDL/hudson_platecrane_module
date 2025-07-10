@@ -1,14 +1,13 @@
 #! /usr/bin/env python3
 """The server for the Hudson Platecrane/Sciclops that takes incoming WEI flow requests from the experiment application"""
 
-import time
 from pathlib import Path
 from typing import Union
 
 from fastapi.datastructures import State
 from typing_extensions import Annotated
 from wei.modules.rest_module import RESTModule
-from wei.types.step_types import StepSucceeded
+from wei.types.step_types import StepFailed, StepSucceeded
 from wei.utils import extract_version
 
 from platecrane_driver.resource_types import Falcon_96_well, Labware
@@ -40,8 +39,12 @@ def sciclops_startup(state: State):
 @rest_module.action()
 def home(state: State):
     """Homes the sciclops"""
-    state.sciclops.home()
-    return StepSucceeded()
+    response = state.sciclops.home()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok(response)
+        else StepFailed(error=response)
+    )
 
 
 @rest_module.action(name="transfer_labware")
@@ -63,7 +66,11 @@ def transfer_labware(
         plate=plate,
         has_lid=has_lid,
     )
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="pick_labware")
@@ -85,7 +92,11 @@ def pick_labware(
         labware_height=plate.height,
         gentle_lift=gentle_lift,
     )
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="place_labware")
@@ -102,7 +113,11 @@ def place_labware(
         location_name=target,
         grip_height=plate.grip_height,
     )
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="remove_lid")
@@ -121,9 +136,12 @@ def remove_lid(
         plate=plate,
         target=target,
     )
-    time.sleep(5)
 
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="replace_lid")
@@ -142,7 +160,11 @@ def replace_lid(
         plate=plate,
         target=target,
     )
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="remove_and_replace_lid")
@@ -161,7 +183,11 @@ def remove_and_replace_lid(
         plate=plate,
         target=target,
     )
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="pick_lid")
@@ -178,7 +204,11 @@ def pick_lid(
         source=source,
         plate=plate,
     )
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="place_lid")
@@ -195,7 +225,11 @@ def place_lid(
         target=target,
         plate=plate,
     )
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="move_to_location")
@@ -205,7 +239,11 @@ def move_to_location(
 ):
     """Move the sciclops to a specific location at a specific height"""
     state.sciclops.move_loc(loc=location)
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="move_above_location")
@@ -215,7 +253,11 @@ def move_above_location(
 ):
     """Move the sciclops above a specific location at a safe height"""
     state.sciclops.move_above_loc(loc=location)
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="move_to_location_with_height")
@@ -226,7 +268,11 @@ def move_to_location_with_height(
 ):
     """Move the sciclops to a specific location at a specific height"""
     state.sciclops.move_loc_at_height(loc=location, height=height)
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="set_limp_mode")
@@ -235,8 +281,12 @@ def limp(
     limp: Annotated[bool, "Whether to set the sciclops in limp mode or not"] = True,
 ):
     """Frees or locks the joints of the sciclops, allowing it to be moved manually"""
-    state.sciclops.limp(limp_bool=limp)
-    return StepSucceeded()
+    response = state.sciclops.limp(limp_bool=limp)
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok(response)
+        else StepFailed(error=response)
+    )
 
 
 @rest_module.action(name="jog")
@@ -247,7 +297,11 @@ def jog(
 ):
     """Jog the sciclops in a specific direction"""
     state.sciclops.jog(axis=axis, distance=distance)
-    return StepSucceeded()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok()
+        else StepFailed(error="Sciclops status not ok.")
+    )
 
 
 @rest_module.action(name="set_speed")
@@ -256,8 +310,12 @@ def set_speed(
     speed: Annotated[int, "The speed to set the sciclops to, as a percentage"] = 100,
 ):
     """Set the speed of the sciclops"""
-    state.sciclops.set_speed(speed=speed)
-    return StepSucceeded()
+    response = state.sciclops.set_speed(speed=speed)
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok(response)
+        else StepFailed(error=response)
+    )
 
 
 @rest_module.action(name="open_gripper")
@@ -265,8 +323,12 @@ def open_gripper(
     state: State,
 ):
     """Open the gripper of the sciclops"""
-    state.sciclops.open()
-    return StepSucceeded()
+    response = state.sciclops.open()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok(response)
+        else StepFailed(error=response)
+    )
 
 
 @rest_module.action(name="close_gripper")
@@ -274,8 +336,12 @@ def close_gripper(
     state: State,
 ):
     """Close the gripper of the sciclops"""
-    state.sciclops.close()
-    return StepSucceeded()
+    response = state.sciclops.close()
+    return (
+        StepSucceeded()
+        if state.sciclops.is_ok(response)
+        else StepFailed(error=response)
+    )
 
 
 @rest_module.action(name="get_position")
@@ -283,14 +349,8 @@ def get_position(
     state: State,
 ):
     """Get the current position of the sciclops"""
-    try:
-        position = state.sciclops.get_position()
-        return StepSucceeded(result=position)
-    except Exception:  # * Sometimes the first call to get_position fails due
-        position = state.sciclops.get_position()
-        return StepSucceeded(
-            result=position,
-        )
+    position = state.sciclops.get_position()
+    return StepSucceeded(data={"position": position})
 
 
 rest_module.start()

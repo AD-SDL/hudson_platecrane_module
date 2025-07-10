@@ -2,10 +2,12 @@
 
 import re
 import time
-from typing import Union
+from threading import Lock
+from typing import Optional, Union
 
 import usb.core
 import usb.util
+from usb.core import Device
 
 from platecrane_driver.resource_types import Labware
 
@@ -22,49 +24,54 @@ class SCICLOPS:
         """Creates a new SCICLOPS driver object. The default VENDOR_ID and PRODUCT_ID are for the Sciclops robot."""
         self.VENDOR_ID = VENDOR_ID
         self.PRODUCT_ID = PRODUCT_ID
-        self.host_path = self.connect_sciclops()
+        self.command_lock = Lock()
+        self.usb_connection: Device = self.connect_sciclops()
         self.TEACH_PLATE = 15.0
         self.STD_FINGER_LENGTH = 17.2
         self.COMPRESSION_DISTANCE = 3.35
         self.current_pos = [0, 0, 0, 0]
-        # self.NEST_ADJUSTMENT = 20.0
         self.STATUS = 0
-        # self.VERSION = 0
-        # self.CONFIG = 0
         self.ERROR = ""
         self.GRIPLENGTH = 0
-        # self.COLLAPSEDDISTANCE = 0
-        # self.STEPSPERUNIT = [0, 0 ,0, 0]
-        # self.HOMEMSG = ""
-        # self.OPENMSG = ""
-        # self.CLOSEMSG = ""
         self.locations = self.load_locations()
-        self.success_count = 0
         self.status = self.get_status()
-        self.error = self.get_error()
-        self.movement_state = "READY"
 
     def __del__(self):
         """Destructor for the SCICLOPS driver. Disconnects from the Sciclops robot."""
         self.disconnect_robot()
 
-    def connect_sciclops(self):
+    def connect_sciclops(self) -> Device:
         """
         Connect to USB device. If wrong device, inform user
         """
-        host_path = usb.core.find(idVendor=self.VENDOR_ID, idProduct=self.PRODUCT_ID)
+        usb_connection = usb.core.find(
+            idVendor=self.VENDOR_ID, idProduct=self.PRODUCT_ID
+        )
 
-        if host_path is None:
+        if usb_connection is None:
             raise Exception("Could not establish connection.")
-
         else:
             print("Device Connected")
-            return host_path
+            return usb_connection
+
+    def is_sciclops_connected(self, device: Optional[Device] = None):
+        """Checks if the Sciclops robot is connected via USB."""
+        try:
+            # Try to get device descriptor
+            if device is None:
+                device = self.usb_connection
+            _ = device.get_active_configuration()
+            return True
+        except usb.core.USBError:
+            # Device likely disconnected
+            return False
+        except Exception:
+            return False
 
     def disconnect_robot(self):
         """Disconnects from the sciclops robot."""
         try:
-            usb.util.dispose_resources(self.host_path)
+            usb.util.dispose_resources(self.usb_connection)
         except Exception as err:
             print(err)
         else:
@@ -119,56 +126,98 @@ class SCICLOPS:
 
         return locations
 
-    def send_command(self, command):
+    def send_command(self, command: str, wait_for_status: bool = True):
         """
         Sends provided command to Sciclops and stores data outputted by the sciclops.
         """
+        with self.command_lock:
+            if not self.is_sciclops_connected():
+                print("No sciclops connection, attempting to reconnect")
+                self.connect_sciclops()
 
-        self.host_path.write(4, command)
+            # * Clear USB buffer
+            while self.read_usb(timeout=100):
+                continue
 
-        response_buffer = "Write: " + command
-        msg = None
+            print("<<<")
+            print(f"Sending command: {command.strip()}")
+            self.usb_connection.write(4, command)
 
-        # Adds SciClops output to response_buffer
-        while msg != command:
-            # or "success" not in msg or "error" in msg
-            try:
-                response = self.host_path.read(0x83, 200, timeout=1000)
-            except Exception:
-                break
-            msg = "".join(chr(i) for i in response)
-            response_buffer = response_buffer + "Read: " + msg
-        # if not command.startswith("STATUS"):
-        print(response_buffer)
+            # * Wait for ACK from Sciclops (Sciclops will send back the command it received)
+            response_buffer: str = ""
+            start_time = time.time()
+            while command not in response_buffer:
+                if time.time() - start_time > 60:
+                    raise TimeoutError("Timeout waiting for command acknowledgment.")
+                response_buffer += self.read_usb()
+            if wait_for_status:
+                # * Wait for a STATUS message from Sciclops (for certain commands, sciclops responds with messages)
+                start_time = time.time()
+                while True:
+                    if time.time() - start_time > 60:
+                        raise TimeoutError("Timeout waiting for status message.")
+                    response_buffer += self.read_usb()
+                    # * Check if we have received a response status or error message
+                    # * 4-digit code at the start of a line indicates a message
+                    if re.search(r"\n\d{4} ", response_buffer):
+                        break
+            # * Read any additional data
+            while temp_buffer := self.read_usb():
+                response_buffer += temp_buffer
 
-        self.success_count = self.success_count + response_buffer.count("0000 Success")
+            print("Response:")
+            print(response_buffer)
+            print(">>>")
 
-        self.get_error(response_buffer)
+            return response_buffer
 
-        return response_buffer
-
-    def get_error(self, response_buffer=None):
+    def is_ok(self, response: Optional[str] = None) -> bool:
         """
-        Gets error message from the feedback.
+        Returns False if any error codes are found in the response or the current status is non-1.
         """
+        if get_status := self.get_status() != "1":
+            print(f"Sciclops status is not OK: {get_status}")
+            return False
+        if response:
+            response_codes = self.get_response_codes(response)
+            if any(response_code != 0 for response_code in response_codes):
+                print(f"Sciclops response codes indicate an error: {response_codes}")
+                return False
+        return True
 
-        if not response_buffer:
-            return
+    def get_response_codes(self, response: str):
+        """
+        Extracts the 4-digit response codes from a Sciclops response.
+        """
+        # * Find all occurrences of 4-digit codes at the start of a line
+        codes = re.findall(r"\n(\d{4}) ", response)
+        if not codes:
+            raise ValueError(f"No response codes found in response: {response}")
+        return [int(code) for code in codes]
 
-        output_line = response_buffer[response_buffer[:-1].rfind("\n") :]
-        exp = r"(\d)(\d)(\d)(\d)(.*\w)"  # Format of feedback that indicates an error message
-        output_line = re.search(exp, response_buffer)
+    def check_boolean_response(self, response: str) -> bool:
+        """
+        Checks a Sciclops boolean response for truthiness.
+        """
+        if "true" in response.lower():
+            return True
+        elif "false" in response.lower():
+            return False
+        else:
+            raise ValueError(f"Unexpected response when checking boolean: {response}.")
 
+    def read_usb(self, timeout: int = 100) -> str:
+        """Reads from the USB connection"""
+        response = ""
         try:
-            # Checks if specified format is found in the last line of feedback
-            if output_line[5][5:9] != "0000":
-                self.ERROR = "ERROR: %s" % output_line[5]
-
-        except Exception:
-            pass
-
-    ################################
-    # Individual Command Functions
+            response = self.usb_connection.read(0x83, 500, timeout=timeout)
+        except Exception as e:
+            if e.errno == 110:  # Timeout error
+                # * This error is expected if there is no data to read
+                return ""
+            print(f"Error while reading from USB device: {e}")
+        response = "".join(chr(i) for i in response)
+        return response
 
     def get_position(self):
         """
@@ -180,79 +229,33 @@ class SCICLOPS:
         P: Gripper turning axis
         """
 
-        command = "GETPOS\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
-        print(out_msg)
+        out_msg = self.send_command("GETPOS\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"Z:([-.\d]+), R:([-.\d]+), Y:([-.\d]+), P:([-.\d]+)"  # Format of coordinates provided in feedback
-            find_current_pos = re.search(exp, out_msg)
-            self.current_pos = [
-                float(find_current_pos[1]),
-                float(find_current_pos[2]),
-                float(find_current_pos[3]),
-                float(find_current_pos[4]),
-            ]
+        # Checks if specified format is found in feedback
+        exp = r"Z:([-.\d]+), R:([-.\d]+), Y:([-.\d]+), P:([-.\d]+)"  # Format of coordinates provided in feedback
+        find_current_pos = re.search(exp, out_msg)
+        self.current_pos = [
+            float(find_current_pos[1]),
+            float(find_current_pos[2]),
+            float(find_current_pos[3]),
+            float(find_current_pos[4]),
+        ]
 
-            print(self.current_pos)
-            return self.current_pos
-        except Exception:
-            import traceback
-
-            traceback.print_exc()
+        return self.current_pos
 
     def get_status(self):
         """
         Checks status of Sciclops
         """
 
-        command = "STATUS\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        out_msg = self.send_command("STATUS\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the status
-            find_status = re.search(exp, out_msg)
-            self.status = find_status[1]
+        # Checks if specified format is found in feedback
+        exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the status
+        find_status = re.search(exp, out_msg)
+        self.status = find_status[1]
 
-            print(self.status)
-
-        except Exception:
-            pass
-
-    def check_complete(self):
-        """
-        Checks to see if current sciclops action has completed
-        """
-        command = "STATUS\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
-
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the status
-            find_status = re.search(exp, out_msg)
-            self.status = find_status[1]
-            self.movement_state = "READY"
-
-            return True
-
-        except Exception:
-            self.movement_state = "BUSY"
-
-            return False
-        finally:
-            time.sleep(0.1)
-
-    def check_complete_loop(self):
-        """
-        continuously runs check_complete until it returns True
-        """
-        a = False
-        while not a:
-            a = self.check_complete()
-
-        print("ACTION COMPLETE")
+        return self.status
 
     def get_version(self):
         """
@@ -262,18 +265,13 @@ class SCICLOPS:
         command = "VERSION\r\n"  # Command interpreted by Sciclops
         out_msg = self.send_command(command)
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the version
-            find_version = re.search(exp, out_msg)
-            self.VERSION = find_version[1]
+        # Checks if specified format is found in feedback
+        exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the version
+        find_version = re.search(exp, out_msg)
+        self.VERSION = find_version[1]
 
-            print(self.VERSION)
+        print(self.VERSION)
 
-        except Exception:
-            pass
-
-    # TODO: swings outward and collides with pf400
     def reset(self):
         """
         Resets Sciclops
@@ -281,328 +279,189 @@ class SCICLOPS:
 
         self.set_speed(5)
 
-        command = "RESET\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        out_msg = self.send_command("RESET\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the version
-            find_reset = re.search(exp, out_msg)
-            self.RESET = find_reset[1]
-
-            print(self.RESET)
-
-        except Exception:
-            pass
+        # Checks if specified format is found in feedback
+        exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the version
+        find_reset = re.search(exp, out_msg)
+        self.RESET = find_reset[1]
 
     def get_config(self):
         """
         Checks configuration of Sciclops
         """
 
-        command = "GETCONFIG\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        out_msg = self.send_command("GETCONFIG\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the configuration
-            find_config = re.search(exp, out_msg)
-            self.CONFIG = find_config[1]
+        # Checks if specified format is found in feedback
+        exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the configuration
+        find_config = re.search(exp, out_msg)
+        self.CONFIG = find_config[1]
 
-            print(self.CONFIG)
-
-        except Exception:
-            pass
+        return self.CONFIG
 
     def get_grip_length(self):
         """
-        Checks current length of the gripper (units unknown) of Sciclops
+        Checks the current length of the gripper of Sciclops
         """
 
-        command = "GETGRIPPERLENGTH\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        out_msg = self.send_command("GETGRIPPERLENGTH\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the gripper length
-            find_grip_length = re.search(exp, out_msg)
-            self.GRIPLENGTH = find_grip_length[1]
+        # Checks if specified format is found in feedback
+        exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the gripper length
+        find_grip_length = re.search(exp, out_msg)
+        self.GRIPLENGTH = find_grip_length[1]
 
-            print(self.GRIPLENGTH)
-
-        except Exception:
-            pass
+        return self.GRIPLENGTH
 
     def get_collapsed_distance(self):
         """
-        ???
+        Gets the collapse distance (how far the gripper will compress vertically when colliding with an object).
         """
 
-        command = "GETCOLLAPSEDISTANCE\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        out_msg = self.send_command("GETCOLLAPSEDISTANCE\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the collapsed distance
-            find_collapsed_distance = re.search(exp, out_msg)
-            self.COLLAPSEDDISTANCE = find_collapsed_distance[1]
-
-            print(self.COLLAPSEDDISTANCE)
-
-        except Exception:
-            pass
+        # Checks if specified format is found in feedback
+        exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the collapsed distance
+        find_collapsed_distance = re.search(exp, out_msg)
+        self.COLLAPSEDDISTANCE = find_collapsed_distance[1]
+        return self.COLLAPSEDDISTANCE
 
     def get_steps_per_unit(self):
         """
-        ???
+        Gets the number of steps per unit for each axis.
         """
 
-        command = "GETSTEPSPERUNIT\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        out_msg = self.send_command("GETSTEPSPERUNIT\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"Z:([-.\d]+),R:([-.\d]+),Y:([-.\d]+),P:([-.\d]+)"  # Format of the coordinates provided in feedback
-            find_steps_per_unit = re.search(exp, out_msg)
-            self.STEPSPERUNIT = [
-                float(find_steps_per_unit[1]),
-                float(find_steps_per_unit[2]),
-                float(find_steps_per_unit[3]),
-                float(find_steps_per_unit[4]),
-            ]
+        # Checks if specified format is found in feedback
+        exp = r"Z:([-.\d]+),R:([-.\d]+),Y:([-.\d]+),P:([-.\d]+)"  # Format of the coordinates provided in feedback
+        find_steps_per_unit = re.search(exp, out_msg)
+        self.STEPSPERUNIT = [
+            float(find_steps_per_unit[1]),
+            float(find_steps_per_unit[2]),
+            float(find_steps_per_unit[3]),
+            float(find_steps_per_unit[4]),
+        ]
+        return self.STEPSPERUNIT
 
-            print(self.STEPSPERUNIT)
-
-        except Exception:
-            pass
-
-    def home(self, axis=""):
+    def home(self, axis: str = "") -> str:
         """
-        Homes all of the axes. Returns to neutral position (above exchange)
+        Homes all or one of the axes.
         """
 
         # Moves axes to home position
-        command = "HOME\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        if axis:
+            return self.send_command(f"HOME {axis}\r\n")
+        else:
+            return self.send_command("HOME\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the success message
-            home_msg = re.search(exp, out_msg)
-            self.HOMEMSG = home_msg[1]
-
-            print(self.HOMEMSG)
-        except Exception:
-            pass
-
-        # Moves axes to neutral position (above exchange)
-        self.move_loc("neutral")
-
-    def open(self):
+    def open(self) -> str:
         """
-        Opens gripper
+        Opens the gripper
         """
 
-        command = "OPEN\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        return self.send_command("OPEN\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the success message
-            open_msg = re.search(exp, out_msg)
-            self.OPENMSG = open_msg[1]
-            print(self.OPENMSG)
-
-        except Exception:
-            pass
-
-    def close(self):
+    def close(self) -> str:
         """
-        Closes gripper
+        Closes the gripper
         """
 
-        command = "CLOSE\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        return self.send_command("CLOSE\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line is the success message
-            close_msg = re.search(exp, out_msg)
-            self.CLOSEMSG = close_msg[1]
-
-            print(self.CLOSEMSG)
-        except Exception:
-            pass
-
-    def check_open(self):
+    def check_open(self) -> bool:
         """
         Checks if gripper is open
         """
 
-        command = "GETGRIPPERISOPEN\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        return self.check_boolean_response(self.send_command("GETGRIPPERISOPEN\r\n"))
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line answers if the gripper is open
-            check_open_msg = re.search(exp, out_msg)
-            self.CHECKOPENMSG = check_open_msg[1]
-
-            print(self.CHECKOPENMSG)
-        except Exception:
-            pass
-
-    def check_closed(self):
+    def check_closed(self) -> bool:
         """
         Checks if gripper is closed
         """
 
-        command = "GETGRIPPERISCLOSED\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        return self.check_boolean_response(self.send_command("GETGRIPPERISCLOSED\r\n"))
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates that the rest of the line answers if the gripper is closed
-            check_closed_msg = re.search(exp, out_msg)
-            self.CHECKCLOSEDMSG = check_closed_msg[1]
-
-            print(self.CHECKCLOSEDMSG)
-
-        except Exception:
-            pass
-
-    def check_plate(self):
+    def check_plate(self) -> bool:
         """
-        ???
+        Checks if there is currently a plate in the gripper
         """
 
-        command = "GETPLATEPRESENT\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        return self.check_boolean_response(self.send_command("GETPLATEPRESENT\r\n"))
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates ???
-            check_plate_msg = re.search(exp, out_msg)
-            self.CHECKPLATEMSG = check_plate_msg[1]
-
-            print(self.CHECKPLATEMSG)
-
-        except Exception:
-            pass
-
-    def set_speed(self, speed):
+    def set_speed(self, speed: int) -> str:
         """
-        Changes speed of Sciclops
+        Sets the movement speed of the Sciclops (as a percentage of max speed).
         """
 
-        command = "SETSPEED %d\r\n" % speed  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        return self.send_command(f"SETSPEED {speed}\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            exp = r"0000 (.*\w)"  # Format of feedback that indicates success message
-            set_speed_msg = re.search(exp, out_msg)
-            self.SETSPEEDMSG = set_speed_msg[1]
-            print(self.SETSPEEDMSG)
-        except Exception:
-            pass
-
-    def list_points(self):
+    def list_points(self) -> str:
         """
         Lists all of the preset points
         """
 
-        command = "LISTPOINTS\r\n"  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        return self.send_command("LISTPOINTS\r\n")
 
-        try:
-            # Checks if specified format is found in feedback
-            list_point_msg_index = out_msg.find(
-                "0000"
-            )  # Format of feedback that indicates success message
-            self.LISTPOINTS = out_msg[list_point_msg_index + 4 :]
-            print(self.LISTPOINTS)
-        except Exception:
-            pass
-
-    def jog(self, axis, distance):
+    def jog(self, axis: str, distance: float) -> tuple[bool, str]:
         """
         Moves the specified axis the specified distance.
+
+        Returns:
+            True if a limit switch was hit, False otherwise.
         """
 
-        command = "JOG %s,%d\r\n" % (axis, distance)  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
+        response = self.send_command(f"JOG {axis},{distance}\r\n")
+        response_codes = self.get_response_codes(response)
+        if 1214 in response_codes:
+            print("Limit switch hit during jog")
+            return True, response
+        else:
+            return False, response
 
-        try:
-            # Checks if specified format is found in feedback
-            jog_msg_index = out_msg.find(
-                "0000"
-            )  # Format of feedback that indicates success message
-            self.JOGMSG = out_msg[jog_msg_index + 4 :]
-            print(self.JOGMSG)
-        except Exception:
-            pass
-
-    def loadpoint(self, R, Z, P, Y):
+    def loadpoint(self, name: str, R: float, Z: float, P: float, Y: float) -> str:
         """
-        Adds point to listpoints function
+        Saves named point on Sciclops
         """
 
-        command = "LOADPOINT R:%s, Z:%s, P:%s, Y:%s, R:%s\r\n" % (
-            R,
-            Z,
-            P,
-            Y,
-            R,
-        )  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
-        try:
-            # Checks if specified format is found in feedback
-            loadpoint_msg_index = out_msg.find(
-                "0000"
-            )  # Format of feedback that indicates success message
-            self.LOADPOINTMSG = out_msg[loadpoint_msg_index + 5 :]
-        except Exception:
-            pass
+        return self.send_command(f"LOADPOINT {name}, Z:{Z}, P:{P}, Y:{Y}, R:{R}\r\n")
 
-    def deletepoint(self, R, Z, P, Y):
+    def deletepoint(self, name: str) -> str:
         """
         Deletes point from listpoints function
         """
 
-        command = "DELETEPOINT R:%s\r\n" % R  # Command interpreted by Sciclops
-        out_msg = self.send_command(command)
-        try:
-            # Checks if specified format is found in feedback
-            deletepoint_msg_index = out_msg.find(
-                "0000"
-            )  # Format of feedback that indicates success message
-            self.DELETEPOINTMSG = out_msg[deletepoint_msg_index + 5 :]
-        except Exception:
-            pass
+        return self.send_command(f"DELETEPOINT {name}\r\n")
 
     def move(self, R, Z, P, Y):
         """
         Moves to specified coordinates
         """
 
-        self.loadpoint(R, Z, P, Y)
-
-        command = "MOVE R:%s\r\n" % R
-        out_msg_move = self.send_command(command)
-
-        try:
-            # Checks if specified format is found in feedback
-            move_msg_index = out_msg_move.find(
-                "0000"
-            )  # Format of feedback that indicates success message
-            self.MOVEMSG = out_msg_move[move_msg_index + 4 :]
-        except Exception:
-            pass
-
-        # self.check_complete_loop()
-
-        self.deletepoint(R, Z, P, Y)
+        self.loadpoint("TEMP", R, Z, P, Y)
+        response = self.send_command("MOVE TEMP\r\n")
+        if status := self.get_status() != "1":
+            raise Exception(f"Move failed, status code {status}")
+        response_codes = self.get_response_codes(response)
+        if [response_code for response_code in response_codes if response_code != 0]:
+            raise Exception(
+                f"Move failed, non-zero response codes {response_codes} found in response:\r\n{response}"
+            )
+        self.deletepoint("TEMP")
+        position = self.get_position()
+        if not all(
+            [
+                abs(position[0] - Z) < 1.0,
+                abs(position[1] - R) < 1.0,
+                abs(position[2] - Y) < 1.0,
+                abs(position[3] - P) < 1.0,
+            ]
+        ):
+            raise Exception(
+                f"Move failed, expected position {[Z, R, Y, P]} but got {position}"
+            )
 
     def move_loc(self, loc):
         """
@@ -679,12 +538,14 @@ class SCICLOPS:
         if gentle_lift:
             self.set_speed(1)
             self.jog("Z", 10)
-            self.jog("Z", -5)
             self.jog("Z", 10)
-            self.jog("Z", -5)
             self.jog("Z", 10)
         self.set_speed(20)
         self.move_above_loc(location_name)
+        if self.check_closed():
+            raise Exception(
+                f"Failed to pick labware from {location_name} at height {grip_height}: no plate detected."
+            )
 
     def place_labware(self, location_name: str, grip_height: float):
         """
@@ -755,6 +616,10 @@ class SCICLOPS:
             grip_height=plate.lid_grip_height,
         )
         self.move_loc("neutral")
+        if self.check_closed():
+            raise Exception(
+                f"Failed to pick lid from {source}: no lid detected in gripper."
+            )
 
     def replace_lid(self, source: str, plate: Union[Labware, dict], target: str):
         """
@@ -842,9 +707,4 @@ class SCICLOPS:
         """
         Turns on/off limp mode (allows someone to manually move joints)
         """
-        if limp_bool:
-            limp_string = "FALSE\r\n"
-        else:
-            limp_string = "TRUE\r\n"
-        command = "LIMP %s" % limp_string  # Command interpreted by Sciclops
-        self.send_command(command)
+        self.send_command(f"LIMP {'FALSE' if limp_bool else 'TRUE'}\r\n")
