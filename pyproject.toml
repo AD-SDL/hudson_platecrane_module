@@ -1,6 +1,6 @@
 [project]
 name = "hudson_platecrane_module"
-version = "2.1.0"
+version = "2.1.1"
 description = "MADSci Node Module and interface for the Hudson Platecrane Robotic Arm"
 authors = [
     {name = "Ryan D. Lewis", email="ryan.lewis@anl.gov"},

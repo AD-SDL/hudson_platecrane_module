@@ -14,6 +14,7 @@ from madsci.node_module.helpers import action
 from madsci.node_module.rest_node_module import RestNode
 
 from platecrane_driver.platecrane_driver import PlateCrane
+from platecrane_driver.resource_types import PlateCraneLocation
 
 
 class PlateCraneConfig(RestNodeConfig):
@@ -64,6 +65,8 @@ class PlateCraneNode(RestNode):
         incremental_lift: Annotated[bool, "Incremental lift during transfer"] = False,
     ) -> ActionResult:
         """Transfers a plate from one location to another."""
+        source.location = PlateCraneLocation.model_validate(source.location)
+        target.location = PlateCraneLocation.model_validate(target.location)
         self.platecrane.transfer(
             source=source,
             target=target,
@@ -87,6 +90,8 @@ class PlateCraneNode(RestNode):
         height_offset: Annotated[int, "Height offset in motor steps"] = 0,
     ) -> ActionResult:
         """Removes a lid from a plate."""
+        source.location = PlateCraneLocation.model_validate(source.location)
+        target.location = PlateCraneLocation.model_validate(target.location)
         self.platecrane.remove_lid(
             source=source,
             target=target,
@@ -104,6 +109,8 @@ class PlateCraneNode(RestNode):
         height_offset: Annotated[int, "Height offset in motor steps"] = 0,
     ) -> ActionResult:
         """Removes a lid from a plate."""
+        source.location = PlateCraneLocation.model_validate(source.location)
+        target.location = PlateCraneLocation.model_validate(target.location)
         self.platecrane.replace_lid(
             source=source,
             target=target,
@@ -121,11 +128,12 @@ class PlateCraneNode(RestNode):
     @action()
     def move(self, target: LocationArgument) -> ActionResult:
         """Moves the PlateCrane to a specified position."""
+        target.location = PlateCraneLocation.model_validate(target.location)
         self.platecrane.move_joint_angles(
-            r=target.location["R"],
-            z=target.location["Z"],
-            p=target.location["P"],
-            y=target.location["Y"],
+            r=target.location.joint_angles["R"],
+            z=target.location.joint_angles["Z"],
+            p=target.location.joint_angles["P"],
+            y=target.location.joint_angles["Y"],
         )
 
 
