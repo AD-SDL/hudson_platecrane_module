@@ -737,7 +737,7 @@ class PlateCrane:
 
         # is safe approach required for source and/or target?
         source_use_safe_approach = source.location.safe_approach_height != 0
-        target_use_safe_approach = source.location.safe_approach_height != 0
+        target_use_safe_approach = target.location.safe_approach_height != 0
 
         # PICK PLATE FROM SOURCE LOCATION
         if source_type == "stack":
@@ -754,7 +754,6 @@ class PlateCrane:
             if source_use_safe_approach:
                 self.pick_plate_safe_approach(
                     source=source,
-                    plate_type=plate_type,
                     grip_height_in_steps=source_grip_height_in_steps,
                 )
             else:

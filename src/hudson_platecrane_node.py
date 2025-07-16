@@ -130,11 +130,12 @@ class PlateCraneNode(RestNode):
         """Moves the PlateCrane to a specified position."""
         target.location = PlateCraneLocation.model_validate(target.location)
         self.platecrane.move_joint_angles(
-            r=target.location.joint_angles["R"],
-            z=target.location.joint_angles["Z"],
-            p=target.location.joint_angles["P"],
-            y=target.location.joint_angles["Y"],
+            r=target.location.joint_angles[0],
+            z=target.location.joint_angles[1],
+            p=target.location.joint_angles[2],
+            y=target.location.joint_angles[3],
         )
+        return ActionSucceeded()
 
 
 if __name__ == "__main__":
