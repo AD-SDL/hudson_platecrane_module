@@ -89,6 +89,12 @@ locations = {
         location_type="nest",
         safe_approach_height=0,
     ),
+    "Sealer.DeepWell.Nest": PlateCraneLocation(  # After vibration table
+        name="Sealer.DeepWell.Nest",
+        joint_angles=[118212, -2498, -4758, 4071],
+        location_type="nest",
+        safe_approach_height=0,
+    ),
     "Peeler.Nest": PlateCraneLocation(  # After vibration table
         name="Peeler.Nest",
         joint_angles=[302738, -30340, -4142, 2351],
@@ -124,6 +130,14 @@ plate_definitions = {
     "pcr_96well": PlateResource(
         plate_height=0,
         grip_height=0,
+        plate_height_with_lid=0,
+        lid_height=0,
+        lid_grip_height=0,
+        lid_removal_grip_height=0,
+    ),
+    "deep_96well": PlateResource(
+        plate_height=36,
+        grip_height=30,
         plate_height_with_lid=0,
         lid_height=0,
         lid_grip_height=0,
