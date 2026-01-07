@@ -3,9 +3,7 @@
 import threading
 from contextlib import nullcontext
 from typing import ClassVar, Optional, Union
-
-from madsci.common.types.location_types import LocationArgument
-
+from pydantic import BaseModel
 from platecrane_driver.resource_defs import locations, plate_definitions
 from platecrane_driver.resource_types import PlateResource
 from platecrane_driver.serial_port import (
@@ -22,6 +20,19 @@ from platecrane_driver.serial_port import (
     * Need a response handler function. Unknown error messages T1, ATS, TU these are about connection issues (multiple access?)
     * Maybe create a plate detect function within pick stack plate function
 """
+
+class PlateCraneLocation(BaseModel):
+    """A location accessible by the PlateCrane EX"""
+
+    name: str
+    """Internal name of the location"""
+    joint_angles: list[int]
+    """List of 4 joint angles (unit: integer stepper values)"""
+    location_type: str
+    """Type of location, either stack or nest. This will be used to determine gripper path for interactions with the location"""
+    safe_approach_height: Optional[int] = None
+    """A safe height (unit: integer stepper value for Z axis) from which
+    to extend the arm when approaching this location."""
 
 
 class PlateCrane:
@@ -677,53 +688,17 @@ class PlateCrane:
             target_grip_height_in_steps=target_grip_height_in_steps,
             is_lid=True,
         )
-
-    def transfer(
-        self,
-        source: LocationArgument,
-        target: LocationArgument,
+    def pick(self,
+        source: PlateCraneLocation,
         plate_type: str,
         height_offset: int = 0,  # units = mm
         is_lid: bool = False,
         has_lid: bool = False,
         source_grip_height_in_steps: int = 0,  # if removing/replacing lid
-        target_grip_height_in_steps: int = 0,  # if removing/replacing lid
-        incremental_lift: bool = False,
-    ) -> None:
-        """Handles the transfer request
-
-        Args:
-            source (str): source location name defined in resource_defs.py
-            target (str): target location name defined in resource_defs.py
-            plate_type (str): plate definition name defined in resource_defs.py
-            height_offset (int): change in z height to be applied to grip location on the lid (units = mm)
-                defaults to 0mm
-            is_lid (bool): True if transferring a lid, False otherwise
-                defaults to False
-            has_lid (bool): True if plate being transferred has a lid, otherwise False
-                defaults to False
-            source_grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate at source location
-                defaults to None
-                only used if transfer function is called from remove/replace_lid functions
-            target_grip_height_in_steps (int): z axis steps distance from bottom of plate to grip the plate at target location
-                defaults to None
-                only used if transfer function is called from remove/replace_lid functions
-            incremental_lift (bool): True if you want to use incremental lift, False otherwise (default False)
-                incremental lift (good for ensuring lids are removed gently and correctly):
-                    - grab plate at grip_height_in_steps
-                    - raise 100 steps along z axis (repeat 5x)
-                    - continue with rest of transfer
-
-        Raises:
-            TODO
-
-        Returns:
-            None
-        """
-
-        # Extract the source and target location_types
-        source_type = source.location.location_type
-        target_type = target.location.location_type
+        incremental_lift: bool = False) -> None: 
+        """Handles the pick request"""
+        source_type = source.location_type
+        
 
         # Determine source and target grip heights from bottom of plate (converted from mm to z motor steps)
         """If the transfer function is called from either remove_lid() or replace_lid(),
@@ -733,11 +708,9 @@ class PlateCrane:
                 plate_definitions[plate_type].grip_height + height_offset
             )
             source_grip_height_in_steps = grip_height_in_steps
-            target_grip_height_in_steps = grip_height_in_steps
 
         # is safe approach required for source and/or target?
-        source_use_safe_approach = source.location.safe_approach_height != 0
-        target_use_safe_approach = target.location.safe_approach_height != 0
+        source_use_safe_approach = source.safe_approach_height != 0
 
         # PICK PLATE FROM SOURCE LOCATION
         if source_type == "stack":
@@ -767,8 +740,22 @@ class PlateCrane:
                 )
         else:
             raise Exception("Source location type not defined correctly")
-
+    def place(self, 
+        target: PlateCraneLocation,
+        plate_type: str,
+        height_offset: int = 0,  # units = mm
+        is_lid: bool = False,
+        target_grip_height_in_steps: int = 0,  # if removing/replacing lid
+        )  -> None:
+        """Handles the place request"""
         # PLACE PLATE AT TARGET LOCATION
+        target_type = target.location_type
+        target_use_safe_approach = target.safe_approach_height != 0
+        if not is_lid:
+            grip_height_in_steps = PlateResource.convert_to_steps(
+                plate_definitions[plate_type].grip_height + height_offset
+            )
+            target_grip_height_in_steps = grip_height_in_steps
         if target_type == "stack":
             self.place_plate_direct(
                 target=target,
@@ -789,3 +776,4 @@ class PlateCrane:
                 )
         else:
             raise Exception("Target location type not defined correctly")
+
