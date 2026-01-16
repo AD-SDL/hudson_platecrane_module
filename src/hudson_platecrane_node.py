@@ -5,17 +5,17 @@ It includes actions for transferring plates, removing lids, and
 placing lids.
 """
 
+import traceback
 from typing import Annotated, Optional
 
+from madsci.common.types.action_types import ActionFailed
 from madsci.common.types.location_types import LocationArgument
 from madsci.common.types.node_types import NodeDefinition, RestNodeConfig
+from madsci.common.types.resource_types import Slot
 from madsci.node_module.helpers import action
 from madsci.node_module.rest_node_module import RestNode
-from madsci.common.types.action_types import ActionFailed
-from platecrane_driver.platecrane_driver import PlateCrane
-from platecrane_driver.platecrane_driver import PlateCraneLocation
-from madsci.common.types.resource_types import Slot
-import traceback
+
+from platecrane_driver.platecrane_driver import PlateCrane, PlateCraneLocation
 
 
 class PlateCraneConfig(RestNodeConfig):
@@ -50,6 +50,7 @@ class PlateCraneNode(RestNode):
         self.gripper_resource = self.resource_client.add_resource(
             Slot(name="platecrane_gripper")
         )
+
     @action()
     def pick(
         self,
@@ -64,8 +65,9 @@ class PlateCraneNode(RestNode):
         incremental_lift: Annotated[bool, "Incremental lift during transfer"] = False,
     ) -> None:
         """Transfers a plate from one location to another."""
-        source = PlateCraneLocation.model_validate(name=source.location_name, **source.representation)
-        
+        source.representation["name"] = source.location_name
+        source = PlateCraneLocation.model_validate(source.representation)
+
         self.platecrane.pick(
             source=source,
             plate_type=plate_type,
@@ -95,7 +97,8 @@ class PlateCraneNode(RestNode):
         ] = 0,
     ) -> None:
         """Transfers a plate from one location to another."""
-        target = PlateCraneLocation.model_validate(name=target.location_name, **target.representation)
+        target.representation["name"] = target.location_name
+        target = PlateCraneLocation.model_validate(target.representation)
         self.platecrane.place(
             target=target,
             plate_type=plate_type,
@@ -110,7 +113,6 @@ class PlateCraneNode(RestNode):
         except Exception as e:
             self.logger.log_error(f"Error during gripper place: {e}")
             return ActionFailed(error=traceback.format_exc())
-
 
     @action()
     def transfer(
@@ -138,16 +140,14 @@ class PlateCraneNode(RestNode):
             has_lid=has_lid,
             source_grip_height_in_steps=source_grip_height_in_steps,
             incremental_lift=incremental_lift,
-            )
+        )
         self.place(
-            target=target, 
+            target=target,
             plate_type=plate_type,
             height_offset=height_offset,
             is_lid=is_lid,
             target_grip_height_in_steps=target_grip_height_in_steps,
-            )
-
-        
+        )
 
     @action()
     def remove_lid(
@@ -158,15 +158,18 @@ class PlateCraneNode(RestNode):
         height_offset: Annotated[int, "Height offset in motor steps"] = 0,
     ) -> None:
         """Removes a lid from a plate."""
-        source = PlateCraneLocation.model_validate(name=source.location_name, **source.representation)
-        target = PlateCraneLocation.model_validate(name=target.location_name, **target.representation)
+        source.representation["name"] = source.location_name
+        target.representation["name"] = target.location_name
+        source = PlateCraneLocation.model_validate(source.representation)
+        target = PlateCraneLocation.model_validate(
+            name=target.location_name, **target.representation
+        )
         self.platecrane.remove_lid(
             source=source,
             target=target,
             plate_type=plate_type,
             height_offset=height_offset,
         )
-
 
     @action()
     def replace_lid(
@@ -177,8 +180,10 @@ class PlateCraneNode(RestNode):
         height_offset: Annotated[int, "Height offset in motor steps"] = 0,
     ) -> None:
         """Removes a lid from a plate."""
-        source = PlateCraneLocation.model_validate(name=source.location_name, **source.representation)
-        target = PlateCraneLocation.model_validate(name=target.location_name, **target.representation)
+        source.representation["name"] = source.location_name
+        target.representation["name"] = target.location_name
+        source = PlateCraneLocation.model_validate(source.representation)
+        target = PlateCraneLocation.model_validate(target.representation)
         self.platecrane.replace_lid(
             source=source,
             target=target,
@@ -190,12 +195,13 @@ class PlateCraneNode(RestNode):
     def home(self) -> None:
         """Moves the PlateCrane to the home position."""
         self.platecrane.home()
-        
 
     @action()
     def move(self, target: LocationArgument) -> None:
         """Moves the PlateCrane to a specified position."""
-        target = PlateCraneLocation.model_validate(name=target.location_name, **target.representation)
+        target = PlateCraneLocation.model_validate(
+            name=target.location_name, **target.representation
+        )
         self.platecrane.move_joint_angles(
             r=target.joint_angles[0],
             z=target.joint_angles[1],

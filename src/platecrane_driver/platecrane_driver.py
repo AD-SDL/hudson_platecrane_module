@@ -3,7 +3,9 @@
 import threading
 from contextlib import nullcontext
 from typing import ClassVar, Optional, Union
+
 from pydantic import BaseModel
+
 from platecrane_driver.resource_defs import locations, plate_definitions
 from platecrane_driver.resource_types import PlateResource
 from platecrane_driver.serial_port import (
@@ -20,6 +22,7 @@ from platecrane_driver.serial_port import (
     * Need a response handler function. Unknown error messages T1, ATS, TU these are about connection issues (multiple access?)
     * Maybe create a plate detect function within pick stack plate function
 """
+
 
 class PlateCraneLocation(BaseModel):
     """A location accessible by the PlateCrane EX"""
@@ -397,7 +400,7 @@ class PlateCrane:
 
     def pick_plate_safe_approach(
         self,
-        source: LocationArgument,
+        source: PlateCraneLocation,
         grip_height_in_steps: int,
     ) -> None:
         """Picks a plate from a source type "nest" using a safe travel path.
@@ -423,13 +426,13 @@ class PlateCrane:
         """
 
         self.gripper_open()
-        self.move_abs("R", source.location.joint_angles[0])
-        self.move_abs("P", source.location.joint_angles[2])
-        self.move_abs("Z", source.location.safe_approach_height)
-        self.move_abs("Y", source.location.joint_angles[3])
-        self.move_abs("Z", source.location.joint_angles[1] + grip_height_in_steps)
+        self.move_abs("R", source.joint_angles[0])
+        self.move_abs("P", source.joint_angles[2])
+        self.move_abs("Z", source.safe_approach_height)
+        self.move_abs("Y", source.joint_angles[3])
+        self.move_abs("Z", source.joint_angles[1] + grip_height_in_steps)
         self.gripper_close()
-        self.move_abs("Z", source.location.safe_approach_height)
+        self.move_abs("Z", source.safe_approach_height)
         self.move_safe_extension_first()
         self.update_position()
 
@@ -459,19 +462,19 @@ class PlateCrane:
             8. Retract arm to Safe location, then move vertically to safe height
         """
 
-        self.move_abs("R", target.location.joint_angles[0])
-        self.move_abs("P", target.location.joint_angles[2])
-        self.move_abs("Z", target.location.safe_approach_height)
-        self.move_abs("Y", target.location.joint_angles[3])
-        self.move_abs("Z", target.location.joint_angles[1] + grip_height_in_steps)
+        self.move_abs("R", target.joint_angles[0])
+        self.move_abs("P", target.joint_angles[2])
+        self.move_abs("Z", target.safe_approach_height)
+        self.move_abs("Y", target.joint_angles[3])
+        self.move_abs("Z", target.joint_angles[1] + grip_height_in_steps)
         self.gripper_open()
-        self.move_abs("Z", target.location.safe_approach_height)
+        self.move_abs("Z", target.safe_approach_height)
         self.move_safe_extension_first()
         self.update_position()
 
     def pick_plate_direct(
         self,
-        source: LocationArgument,
+        source: PlateCraneLocation,
         source_type: str,
         plate_type: str,
         grip_height_in_steps: int,
@@ -500,21 +503,21 @@ class PlateCrane:
         """
 
         # Rotate R axis (base rotation) over the plate
-        self.move_abs("R", source.location.joint_angles[0])
+        self.move_abs("R", source.joint_angles[0])
 
         if source_type == "stack":
             # close the gripper
             self.gripper_close()
 
             # move the arm directly above the stack (P and Y axes)
-            self.move_abs("P", source.location.joint_angles[2])
-            self.move_abs("Y", source.location.joint_angles[3])
+            self.move_abs("P", source.joint_angles[2])
+            self.move_abs("Y", source.joint_angles[3])
 
             # decrease the plate crane speed
             self.set_speed(50)
 
             # move down in z height to tap the top of the plates in stack
-            self.move_abs("Z", source.location.joint_angles[1])
+            self.move_abs("Z", source.joint_angles[1])
 
             # set plate crane back to full speed
             self.set_speed(100)
@@ -544,9 +547,9 @@ class PlateCrane:
 
         else:  # if source_type == nest:
             self.gripper_open()
-            self.move_abs("P", source.location.joint_angles[2])
-            self.move_abs("Y", source.location.joint_angles[3])
-            self.move_abs("Z", source.location.joint_angles[1] + grip_height_in_steps)
+            self.move_abs("P", source.joint_angles[2])
+            self.move_abs("Y", source.joint_angles[3])
+            self.move_abs("Z", source.joint_angles[1] + grip_height_in_steps)
 
         # close the gripper to pick up the plate
         self.gripper_close()
@@ -586,18 +589,18 @@ class PlateCrane:
         """
 
         # Rotate base (R axis) to target location
-        self.move_abs("R", target.location.joint_angles[0])
+        self.move_abs("R", target.joint_angles[0])
 
         # Extend arm over plate location (Y axis) and rotate gripper to correct orientation (P axis)
-        self.move_abs("Y", target.location.joint_angles[3])
-        self.move_abs("P", target.location.joint_angles[2])
+        self.move_abs("Y", target.joint_angles[3])
+        self.move_abs("P", target.joint_angles[2])
 
         if target_type == "stack":
             # lower plate crane speed
             self.set_speed(50)
 
         # Lower arm (z axis) to plate grip height
-        self.move_abs("Z", target.location.joint_angles[1] + grip_height_in_steps)
+        self.move_abs("Z", target.joint_angles[1] + grip_height_in_steps)
 
         if target_type == "stack":
             # return plate crane to full speed
@@ -611,8 +614,8 @@ class PlateCrane:
 
     def remove_lid(
         self,
-        source: LocationArgument,
-        target: LocationArgument,
+        source: PlateCraneLocation,
+        target: PlateCraneLocation,
         plate_type: str,
         height_offset: int = 0,
     ) -> None:
@@ -653,7 +656,7 @@ class PlateCrane:
 
     def replace_lid(
         self,
-        source: LocationArgument,
+        source: PlateCraneLocation,
         target: str,
         plate_type: str,
         height_offset: int = 0,
@@ -688,17 +691,19 @@ class PlateCrane:
             target_grip_height_in_steps=target_grip_height_in_steps,
             is_lid=True,
         )
-    def pick(self,
+
+    def pick(
+        self,
         source: PlateCraneLocation,
         plate_type: str,
         height_offset: int = 0,  # units = mm
         is_lid: bool = False,
         has_lid: bool = False,
         source_grip_height_in_steps: int = 0,  # if removing/replacing lid
-        incremental_lift: bool = False) -> None: 
+        incremental_lift: bool = False,
+    ) -> None:
         """Handles the pick request"""
         source_type = source.location_type
-        
 
         # Determine source and target grip heights from bottom of plate (converted from mm to z motor steps)
         """If the transfer function is called from either remove_lid() or replace_lid(),
@@ -740,13 +745,15 @@ class PlateCrane:
                 )
         else:
             raise Exception("Source location type not defined correctly")
-    def place(self, 
+
+    def place(
+        self,
         target: PlateCraneLocation,
         plate_type: str,
         height_offset: int = 0,  # units = mm
         is_lid: bool = False,
         target_grip_height_in_steps: int = 0,  # if removing/replacing lid
-        )  -> None:
+    ) -> None:
         """Handles the place request"""
         # PLACE PLATE AT TARGET LOCATION
         target_type = target.location_type
@@ -776,4 +783,3 @@ class PlateCrane:
                 )
         else:
             raise Exception("Target location type not defined correctly")
-
