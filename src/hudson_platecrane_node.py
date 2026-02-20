@@ -11,11 +11,19 @@ from typing import Annotated, Optional
 from madsci.common.types.action_types import ActionFailed
 from madsci.common.types.location_types import LocationArgument
 from madsci.common.types.node_types import NodeDefinition, RestNodeConfig
-from madsci.common.types.resource_types import Slot
+from madsci.common.types.resource_types import Slot, Stack
 from madsci.node_module.helpers import action
 from madsci.node_module.rest_node_module import RestNode
 
+from pathlib import Path
+
 from platecrane_driver.platecrane_driver import PlateCrane, PlateCraneLocation
+
+
+"""
+TODOs: 
+- why can't I change self.node_definition.node_name to platecrane_poly no matter what I do here or in the rapid350_sdl repo?
+"""
 
 
 class PlateCraneConfig(RestNodeConfig):
@@ -27,7 +35,6 @@ class PlateCraneConfig(RestNodeConfig):
     """The baud rate for the serial connection to the PlateCrane robot."""
     default_speed: int = 100
     """The default speed for the PlateCrane robot arm to move, as a percentage."""
-
 
 class PlateCraneNode(RestNode):
     """A REST MADSci Node for controlling the Hudson PlateCrane robot."""
@@ -47,9 +54,47 @@ class PlateCraneNode(RestNode):
             device_path=self.config.device, baud_rate=self.config.baud_rate
         )
         self.platecrane.initialize_platecrane()
-        self.gripper_resource = self.resource_client.add_resource(
-            Slot(name="platecrane_gripper")
-        )
+        # self.gripper_resource = self.resource_client.add_resource(
+        #     Slot(name="platecrane_gripper")
+        # )
+
+        # Create resources: 
+        self.create_resources()
+
+    # ADD MADSCI RESOURCES
+
+
+
+    def create_resources(self): 
+
+        # TESTING
+        print("TESTING")
+        print(f"{self.node_definition}")
+        print(f"{self.node_definition.node_name=}")
+
+
+        # Does the gripper resource already exist?
+        self.gripper_resource_id = None
+        gripper_resource_name = f"{self.node_definition.node_name}_gripper.nest"
+        self.gripper_resource = None
+        try: 
+            self.gripper_resource = self.resource_client.query_resource(
+                resource_name=gripper_resource_name,
+            )
+            print("gripper already exists!")
+        except Exception as e: 
+            self.logger.log_info(f"Creating a new instance of the {gripper_resource_name} resource.")
+
+        if not self.gripper_resource:
+            # Gripper
+            gripper_slot = Slot(
+                resource_name = f"{self.node_definition.node_name}_gripper.nest",
+                resource_description="Gripper location on the Plate Crane EX.",
+            )
+            self.gripper_resource = self.resource_client.add_resource(
+                resource = gripper_slot,
+            )
+
 
     @action()
     def pick(
