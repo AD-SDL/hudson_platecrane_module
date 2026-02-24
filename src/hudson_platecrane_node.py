@@ -11,7 +11,7 @@ from typing import Annotated, Optional
 from madsci.common.types.action_types import ActionFailed
 from madsci.common.types.location_types import LocationArgument
 from madsci.common.types.node_types import NodeDefinition, RestNodeConfig
-from madsci.common.types.resource_types import Slot, Stack
+from madsci.common.types.resource_types import Slot, Stack, Resource, Collection, Grid
 from madsci.node_module.helpers import action
 from madsci.node_module.rest_node_module import RestNode
 
@@ -23,6 +23,29 @@ from platecrane_driver.platecrane_driver import PlateCrane, PlateCraneLocation
 """
 TODOs: 
 - why can't I change self.node_definition.node_name to platecrane_poly no matter what I do here or in the rapid350_sdl repo?
+
+Below is the plate with lid standard that I'm working with:
+
+        # # TESTING (create a properly formatted plate resource with lid slot)
+        # test_lid = Resource(
+        #     resource_name = "TEST_LID",
+        #     attributes={
+        #         "lid": True
+        #     }
+        # )
+        # test_plate_resource = Collection(
+        #     resource_name = "FORMATTED_TEST_PLATE3", 
+        #     capacity=2,
+        #     children={
+        #         "lid_slot": Slot(
+        #             resource_name = "lid slot resource on test plate",
+        #             children=[test_lid]
+        #         )
+        #     }
+        # )
+        # self.resource_client.add_resource(test_plate_resource)
+
+
 """
 
 
@@ -57,6 +80,9 @@ class PlateCraneNode(RestNode):
 
         # Create resources.
         self.create_resources()
+
+
+
 
     def create_resources(self): 
         # Does the gripper resource already exist?
@@ -113,7 +139,7 @@ class PlateCraneNode(RestNode):
                 # Is the gripper location clear?
                 self.gripper_resource = self.resource_client.get_resource(self.gripper_resource)  # update the gripper resource
                 if len(self.gripper_resource.children) == 1:
-                    return ActionFailed(errors=[f"A plate resource is already in the gripper. Pick action cannot be completed."])
+                    return ActionFailed(errors=[f"A resource is already in the gripper. Pick action cannot be completed."])
         else: 
             self.logger.log_warning(f"No ResourceClient and/or LocationClient present. {self.resource_client=}, {self.location_client=}")
         
@@ -159,7 +185,6 @@ class PlateCraneNode(RestNode):
                 # Does a plate resource exist in the gripper? 
                 self.gripper_resource = self.resource_client.get_resource(self.gripper_resource)  # update the gripper resource
                 if len(self.gripper_resource.children) == 1: 
-                    print("PLATE EXISTS IN THE GRIPPER")
                     plate_resource = self.gripper_resource.child 
                 else: 
                     return ActionFailed(errors=["No plate resource exists in the gripper. Place action cannot be completed."])
@@ -173,7 +198,7 @@ class PlateCraneNode(RestNode):
         else: 
             self.logger.log_warning(f"No ResourceClient and/or LocationClient present. {self.resource_client=}, {self.location_client=}")
 
-        # Physically plate the plate.
+        # Physically place the plate.
         self.platecrane.place(
             target=target,
             plate_type=plate_type,
@@ -241,46 +266,78 @@ class PlateCraneNode(RestNode):
         target: LocationArgument,
         plate_type: Annotated[str, "Type of plate, e.g. 'flat_bottom_96well'"],
         height_offset: Annotated[int, "Height offset in motor steps"] = 0,
+        ignore_resource_checks: Annotated[bool, "True to ignore ResourceClient validations, False otherwise."] = False
     ) -> None:
         """Removes a lid from a plate."""
         source.representation["name"] = source.location_name
         target.representation["name"] = target.location_name
-
-        # TESTING
-        print(f"{source=}")
-        print(f"{source.representation=}")
-        print(f"{target=}")
-        print(f"{target.representation=}")
-
-        # TODO: start here! remove lid is broken
-
-
         source = PlateCraneLocation.model_validate(source.representation)
-        # target = PlateCraneLocation.model_validate(
-        #     name=target.location_name, **target.representation
-        # )
         target = PlateCraneLocation.model_validate(target.representation)
 
-        # # TODO: ResourceClient checks!
-        # if (self.resource_client is not None) and (self.location_client is not None):
-        #     # 
-        # else: 
-        #     self.logger.log_warning(f"No ResourceClient and/or LocationClient present. {self.resource_client=}, {self.location_client=}")
+        # Complete MADSci resource checks.
+        lid_resource = None
+        plate_resource = None
+        source_resource = None
+        target_resource = None
+        if not ignore_resource_checks:
+            # TODO: Validate plate resource structyre conformity with a Pydantic model.
+            if (self.resource_client is not None) and (self.location_client is not None):
 
-        #     # # Does a plate resource exist in the gripper? 
-        #     # self.gripper_resource = self.resource_client.get_resource(self.gripper_resource)  # update the gripper resource
-        #     # if len(self.gripper_resource.children) == 1: 
-             
-        #     #     plate_resource = self.gripper_resource.child 
-        #     # else: 
-        #     #     return ActionFailed(errors=["No plate resource exists in the gripper. Place action cannot be completed."])
-            
+                # Is a lid resource present on the source location for removal?
+                source_resource_id = self.location_client.get_location_by_name(source.name).resource_id
+                source_resource = self.resource_client.get_resource(source_resource_id)
+                if len(source_resource.children) == 1:
+                    plate_resource = source_resource.child 
+                    if "lid_slot" in plate_resource.children:
+                        lid_slot_child_value = plate_resource.children["lid_slot"]
+                        if isinstance(lid_slot_child_value, Slot):
+                            if len(lid_slot_child_value.children) == 1: 
+                                lid_resource = lid_slot_child_value.child  # collect lid resource
+                                self.logger.log_info(f"Identified lid Slot resource {lid_resource.resource_id} for removal.")
+                            else: 
+                                return ActionFailed(errors=[f"No lid resource exists in the lid slot. {lid_slot_child_value}"])
+                        else: 
+                            return ActionFailed(errors=[f"Lid slot child value is not of type Slot. {lid_slot_child_value=}"])
+                    else:
+                        return ActionFailed(errors=f"No \"lid\" child exists on the plate resource {plate_resource.resource_id}")
+                else: 
+                    return ActionFailed(errors=[f"No plate resource exists at source location {source.name}"])
+                
+                # Is the target location clear?
+                target_resource_id = self.location_client.get_location_by_name(target.name).resource_id
+                target_resource = self.resource_client.get_resource(target_resource_id)
+                if not len(target_resource.children) == 0: 
+                    return ActionFailed(errors=[f"A plate resource already exists at the target location {target.name}. The remove lid action cannot be completed."])
+                    
+                # Is the gripper location clear?
+                self.gripper_resource = self.resource_client.get_resource(self.gripper_resource)  # update the gripper resource
+                if len(self.gripper_resource.children) == 1:
+                    return ActionFailed(errors=[f"A resource is already in the gripper. Pick action cannot be completed."])
+            else: 
+                return ActionFailed(f"No ResourceClient and/or LocationClient present. {self.resource_client=}, {self.location_client=}")
+        else: 
+            self.logger.log_info("Skipping resources validation for remove lid action.")    
+
         self.platecrane.remove_lid(
             source=source,
             target=target,
             plate_type=plate_type,
             height_offset=height_offset,
         )
+
+        # transfer the lid resource 
+        # TODO: this skips transferring through the gripper for now
+        # since pick and place for the lid are not called separately
+        if target_resource and lid_resource:
+            # Push lid resource onto target Slot resource.
+            try: 
+                self.resource_client.push(target_resource, lid_resource)
+            except Exception as e: 
+                # Return Action Failed. Do not put device into an error state.
+                return ActionFailed(errors=[f"Lid resource could not be removed in ResourceClient. {e}"])
+        else: 
+            return ActionFailed(f"lid_resource or target_resource do not exist. {lid_resource=}, {target_resource=}")
+
 
     @action()
     def replace_lid(
@@ -289,18 +346,84 @@ class PlateCraneNode(RestNode):
         target: LocationArgument,
         plate_type: Annotated[str, "Type of plate, e.g. '96-well'"],
         height_offset: Annotated[int, "Height offset in motor steps"] = 0,
+        ignore_resource_checks: Annotated[bool, "True to ignore ResourceClient validations, False otherwise."] = False
+
     ) -> None:
         """Removes a lid from a plate."""
         source.representation["name"] = source.location_name
         target.representation["name"] = target.location_name
         source = PlateCraneLocation.model_validate(source.representation)
         target = PlateCraneLocation.model_validate(target.representation)
+
+        # Complete MADSci resource checks.
+        lid_resource = None
+        lid_slot_resource = None
+        plate_resource = None
+        source_resource = None
+        target_resource = None
+        if not ignore_resource_checks:
+            # TODO: Validate plate resource structyre conformity with a Pydantic model.
+            if (self.resource_client is not None) and (self.location_client is not None):
+                # Check for a lid resource in the source location.
+                source_resource_id = self.location_client.get_location_by_name(source.name).resource_id
+                source_resource = self.resource_client.get_resource(source_resource_id)
+                if len(source_resource.children) == 1:  # source slot resource can only have one child
+                    child_resource = source_resource.child
+                    if "lid" in child_resource.attributes: 
+                        if source_resource.child.attributes["lid"] is True: 
+                            lid_resource = source_resource.child  # a lid exists at the source location
+                        else: 
+                            return ActionFailed(errors=[f"\"lid\" attribute is set to {source_resource.child.attributes["lid"]}."])
+                    else: 
+                        self.logger.log_warning(f"Lid resource found does not conform to standard. No \"lid\" attribute found. {lid_resource}")
+                else: 
+                    return ActionFailed(errors=["No lid resource exists at source location."])
+                
+                # Check for a plate without a lid at the target location
+                target_resource_id = self.location_client.get_location_by_name(target.name).resource_id
+                target_resource = self.resource_client.get_resource(target_resource_id)
+                if len(target_resource.children) == 1: 
+                    plate_resource = target_resource.child
+                    if "lid_slot" in plate_resource.children:
+                        if len(plate_resource.children["lid_slot"].children) != 0: 
+                            return ActionFailed(errors=[f"A lid resource already exists on the plate resource at the target location. plate_resource={plate_resource=}"])
+                        else: 
+                            lid_slot_resource = plate_resource.children["lid_slot"]
+                    else: 
+                        return ActionFailed(errors=[f"Target plate resource has no lid slot resource. {target_resource=}"])
+                else:
+                    return ActionFailed(errors=[f"No plate resource exists at the target location {target.name}. The remove lid action cannot be completed."])
+                    
+                # Is the gripper location clear?
+                self.gripper_resource = self.resource_client.get_resource(self.gripper_resource)  # update the gripper resource
+                if len(self.gripper_resource.children) == 1:
+                    return ActionFailed(errors=[f"A resource is already in the gripper. Pick action cannot be completed."])
+                
+            else:
+                return ActionFailed(f"No ResourceClient and/or LocationClient present. {self.resource_client=}, {self.location_client=}")
+        else: 
+            self.logger.log_info("Skipping resources validation for replace lid action.")  
+
         self.platecrane.replace_lid(
             source=source,
             target=target,
             plate_type=plate_type,
             height_offset=height_offset,
         )
+
+        # Transfer the lid resource 
+        # TODO: this skips transferring through the gripper for now
+        # since pick and place for the lid are not called separately
+        if lid_resource and lid_slot_resource:
+            # push lid resource onto the plate resource's lid slot
+            try: 
+                self.resource_client.push(lid_slot_resource, lid_resource)
+            except Exception as e: 
+                # Return Action Failed.Do not put device into an error state.
+                return ActionFailed(errors=[f"Lid resource could not be replaced in ResourceClient. {e}"])
+        else: 
+            return ActionFailed(f"lid_resource or lid_slot_resourse do not exist. {lid_resource=}, {lid_slot_resource=}")
+
 
     @action()
     def home(self) -> None:

@@ -642,17 +642,26 @@ class PlateCrane:
             + height_offset
         )
 
-        # Pass to transfer function but specify that it is a lid we're transferring
-        self.transfer(
+        # Pick the lid.
+        self.pick(
             source=source,
+            plate_type=plate_type,
+            height_offset=height_offset,
+            source_grip_height_in_steps=source_grip_height_in_steps,
+            is_lid = True,
+            has_lid=True,
+            incremental_lift=True,
+        )
+
+        # Place the lid.
+        self.place(
             target=target,
             plate_type=plate_type,
             height_offset=height_offset,
             is_lid=True,
-            source_grip_height_in_steps=source_grip_height_in_steps,
             target_grip_height_in_steps=target_grip_height_in_steps,
-            incremental_lift=True,
         )
+
 
     def replace_lid(
         self,
@@ -681,15 +690,24 @@ class PlateCrane:
             plate_definitions[plate_type].lid_removal_grip_height + height_offset
         )
 
-        # Pass to transfer function but specify that it is a lid we're transferring
-        self.transfer(
+        # Pick the lid.
+        self.pick(
             source=source,
-            target=target,
             plate_type=plate_type,
             height_offset=height_offset,
             source_grip_height_in_steps=source_grip_height_in_steps,
-            target_grip_height_in_steps=target_grip_height_in_steps,
+            is_lid = True,
+            has_lid=False,
+            incremental_lift=False,
+        )
+
+        # Place the lid.
+        self.place(
+            target=target,
+            plate_type=plate_type,
+            height_offset=height_offset,
             is_lid=True,
+            target_grip_height_in_steps=target_grip_height_in_steps,
         )
 
     def pick(
@@ -723,13 +741,14 @@ class PlateCrane:
                 source=source,
                 source_type=source_type,  # "stack"
                 plate_type=plate_type,
-                grip_height_in_steps=source_grip_height_in_steps,
                 has_lid=has_lid,
+                grip_height_in_steps=source_grip_height_in_steps,
                 incremental_lift=incremental_lift,
             )
 
         elif source_type == "nest":
             if source_use_safe_approach:
+                # TODO: incremental lift won't work if a safe approach height is given???
                 self.pick_plate_safe_approach(
                     source=source,
                     grip_height_in_steps=source_grip_height_in_steps,
@@ -739,8 +758,8 @@ class PlateCrane:
                     source=source,
                     source_type=source_type,  # nest
                     plate_type=plate_type,
-                    grip_height_in_steps=source_grip_height_in_steps,
                     has_lid=has_lid,
+                    grip_height_in_steps=source_grip_height_in_steps,
                     incremental_lift=incremental_lift,
                 )
         else:
