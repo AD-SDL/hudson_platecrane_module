@@ -130,8 +130,9 @@ class PlateCraneNode(RestNode):
                 # Does a plate resource exist at the source location?
                 source_resource_id = self.location_client.get_location_by_name(source.name).resource_id
                 source_resource = self.resource_client.get_resource(source_resource_id)
-                if len(source_resource.children) == 1:
-                    plate_resource = source_resource.child 
+                if len(source_resource.children) > 1:
+                    plate_resource = source_resource.children[0] 
+                    # this accounts for the source resource being a stack
                 else: 
                     return ActionFailed(errors=[f"No plate resource exists at source location {source.name}"])
                         
