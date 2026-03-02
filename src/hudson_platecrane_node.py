@@ -264,7 +264,7 @@ class PlateCraneNode(RestNode):
         self,
         source: LocationArgument,
         target: LocationArgument,
-        plate_type: Annotated[str, "Type of plate, e.g. 'flat_bottom_96well'"],
+        plate_type: Annotated[str, "Type of plate, e.g. 'flat_bottom_96well' or 'deep_96well"],
         height_offset: Annotated[int, "Height offset in motor steps"] = 0,
         ignore_resource_checks: Annotated[bool, "True to ignore ResourceClient validations, False otherwise."] = False
     ) -> None:
@@ -344,12 +344,12 @@ class PlateCraneNode(RestNode):
         self,
         source: LocationArgument,
         target: LocationArgument,
-        plate_type: Annotated[str, "Type of plate, e.g. '96-well'"],
+        plate_type: Annotated[str, "Type of plate, e.g. 'flat_bottom_96well' or 'deep_96well'"],
         height_offset: Annotated[int, "Height offset in motor steps"] = 0,
         ignore_resource_checks: Annotated[bool, "True to ignore ResourceClient validations, False otherwise."] = False
 
     ) -> None:
-        """Removes a lid from a plate."""
+        """Replaces a lid on a plate."""
         source.representation["name"] = source.location_name
         target.representation["name"] = target.location_name
         source = PlateCraneLocation.model_validate(source.representation)

@@ -637,11 +637,12 @@ class PlateCrane:
             plate_definitions[plate_type].lid_removal_grip_height + height_offset
         )
         target_grip_height_in_steps = PlateResource.convert_to_steps(
-            plate_definitions[plate_type].plate_height_with_lid
-            - plate_definitions[plate_type].lid_height
+            plate_definitions[plate_type].lid_height
+            - (plate_definitions[plate_type].plate_height_with_lid
+            - plate_definitions[plate_type].lid_removal_grip_height)
             + height_offset
         )
-
+        
         # Pick the lid.
         self.pick(
             source=source,
