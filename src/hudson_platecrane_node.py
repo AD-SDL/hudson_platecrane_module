@@ -130,7 +130,7 @@ class PlateCraneNode(RestNode):
                 # Does a plate resource exist at the source location?
                 source_resource_id = self.location_client.get_location_by_name(source.name).resource_id
                 source_resource = self.resource_client.get_resource(source_resource_id)
-                if len(source_resource.children) > 1:
+                if len(source_resource.children) > 0:
                     plate_resource = source_resource.children[0] 
                     # this accounts for the source resource being a stack
                 else: 
@@ -434,9 +434,8 @@ class PlateCraneNode(RestNode):
     @action()
     def move(self, target: LocationArgument) -> None:
         """Moves the PlateCrane to a specified position."""
-        target = PlateCraneLocation.model_validate(
-            name=target.location_name, **target.representation
-        )
+        target.representation["name"] = target.location_name
+        target = PlateCraneLocation.model_validate(target.representation)
         self.platecrane.move_joint_angles(
             r=target.joint_angles[0],
             z=target.joint_angles[1],
