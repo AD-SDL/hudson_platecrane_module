@@ -193,7 +193,9 @@ class PlateCraneNode(RestNode):
                 # Is the target location clear? 
                 target_resource_id = self.location_client.get_location_by_name(target.name).resource_id
                 target_resource = self.resource_client.get_resource(target_resource_id)
-                if len(target_resource.children) == 1:
+
+                if len(target_resource.children) == 1 and target.location_type != "stack":
+                    # Do not fail the action if there's already a plate in a stack target location.
                     return ActionFailed(errors=[f"A plate resource already exists at the target location {target.name}. The place action cannot be completed."])
                 
         else: 
