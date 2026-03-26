@@ -259,12 +259,10 @@ class PlateCrane:
 
     def gripper_open(self) -> None:
         """Opens gripper"""
-
         self._device.send_command("OPEN\r\n")
 
     def gripper_close(self) -> None:
         """Closes gripper"""
-
         command = "CLOSE\r\n"
         self._device.send_command(command)
 
@@ -638,18 +636,20 @@ class PlateCrane:
         )
         target_grip_height_in_steps = PlateResource.convert_to_steps(
             plate_definitions[plate_type].lid_height
-            - (plate_definitions[plate_type].plate_height_with_lid
-            - plate_definitions[plate_type].lid_removal_grip_height)
+            - (
+                plate_definitions[plate_type].plate_height_with_lid
+                - plate_definitions[plate_type].lid_removal_grip_height
+            )
             + height_offset
         )
-        
+
         # Pick the lid.
         self.pick(
             source=source,
             plate_type=plate_type,
             height_offset=height_offset,
             source_grip_height_in_steps=source_grip_height_in_steps,
-            is_lid = True,
+            is_lid=True,
             has_lid=True,
             incremental_lift=True,
         )
@@ -662,7 +662,6 @@ class PlateCrane:
             is_lid=True,
             target_grip_height_in_steps=target_grip_height_in_steps,
         )
-
 
     def replace_lid(
         self,
@@ -697,7 +696,7 @@ class PlateCrane:
             plate_type=plate_type,
             height_offset=height_offset,
             source_grip_height_in_steps=source_grip_height_in_steps,
-            is_lid = True,
+            is_lid=True,
             has_lid=False,
             incremental_lift=False,
         )

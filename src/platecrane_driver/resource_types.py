@@ -19,6 +19,20 @@ class PlateCraneLocation(BaseModel):
     to extend the arm when approaching this location."""
 
 
+class SciClopsLocation(BaseModel):
+    """A location accessible by the PlateCrane EX"""
+
+    name: str
+    """Internal name of the location"""
+    joint_angles: dict
+    """List of 4 joint angles (unit: integer stepper values)"""
+    location_type: str
+    """Type of location, either stack or nest. This will be used to determine gripper path for interactions with the location"""
+    safe_approach_height: Optional[float] = None
+    """A safe height (unit: integer stepper value for Z axis) from which
+    to extend the arm when approaching this location."""
+
+
 class PlateResource(BaseModel):
     """A plate resource that can be manipulated by the PlateCrane EX"""
 
