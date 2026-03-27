@@ -1,0 +1,6 @@
+node_name: sciclops_node
+node_description: null
+node_type: device
+module_name: hudson_sciclops_node
+module_version: 2.1.0
+capabilities: null
