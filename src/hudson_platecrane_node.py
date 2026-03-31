@@ -9,7 +9,7 @@ from typing import Annotated, Optional
 
 from madsci.common.types.action_types import ActionFailed
 from madsci.common.types.location_types import LocationArgument
-from madsci.common.types.node_types import NodeDefinition, RestNodeConfig
+from madsci.common.types.node_types import RestNodeConfig
 from madsci.common.types.resource_types import Slot
 from madsci.node_module.helpers import action
 from madsci.node_module.rest_node_module import RestNode
@@ -18,7 +18,6 @@ from platecrane_driver.platecrane_driver import PlateCrane, PlateCraneLocation
 
 """
 TODOs:
-- why can't I change self.node_definition.node_name to platecrane_poly no matter what I do here or in the rapid350_sdl repo?
 
 Below is the plate with lid standard that I'm working with:
 
@@ -558,9 +557,5 @@ class PlateCraneNode(RestNode):
 
 
 if __name__ == "__main__":
-    plate_crane_node = PlateCraneNode(
-        node_definition=NodeDefinition(
-            node_name="platecrane_node", module_name="hudson_platecrane_node"
-        )
-    )
+    plate_crane_node = PlateCraneNode()
     plate_crane_node.start_node()
