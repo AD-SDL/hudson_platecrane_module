@@ -7,7 +7,6 @@ from fastapi.datastructures import State
 from platecrane_driver.sciclops_driver import SCICLOPS
 from typing_extensions import Annotated
 from wei.modules.rest_module import RESTModule
-from wei.types.module_types import ModuleStatus
 from wei.types.step_types import StepSucceeded
 from wei.utils import extract_version
 
